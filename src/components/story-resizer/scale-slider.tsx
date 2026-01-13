@@ -1,6 +1,6 @@
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { MIN_SCALE, MAX_SCALE } from "@/lib/types";
+import { MAX_SCALE, MIN_SCALE } from "@/lib/types";
 
 interface ScaleSliderProps {
   scale: number;
@@ -10,7 +10,7 @@ interface ScaleSliderProps {
 export function ScaleSlider({ scale, onScaleChange }: ScaleSliderProps) {
   const percentage = Math.round(scale * 100);
 
-  const handleValueChange = (value: number | readonly number[]) => {
+  const handleValueChange = (value: number | ReadonlyArray<number>) => {
     const values = Array.isArray(value) ? value : [value];
     onScaleChange(values[0] / 100);
   };

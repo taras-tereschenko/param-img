@@ -1,14 +1,19 @@
-import { useState, useRef } from "react";
+import { useRef, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   BlurIcon,
-  ColorPickerIcon,
   CheckmarkCircle02Icon,
+  ColorPickerIcon,
   SunglassesIcon,
 } from "@hugeicons/core-free-icons";
+import type {
+  AmbientBaseType,
+  BackgroundType,
+  ProcessedImage,
+} from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { type BackgroundType, type AmbientBaseType, type ProcessedImage, MIN_BLUR_RADIUS, MAX_BLUR_RADIUS } from "@/lib/types";
+import { MAX_BLUR_RADIUS, MIN_BLUR_RADIUS } from "@/lib/types";
 import { Slider } from "@/components/ui/slider";
 import { getColorFromImage } from "@/lib/canvas-utils";
 import { cn } from "@/lib/utils";
@@ -24,7 +29,7 @@ interface BackgroundPickerProps {
   onAmbientBaseChange: (base: AmbientBaseType) => void;
   onAmbientCustomColorChange: (color: string | null) => void;
   onBlurRadiusChange: (radius: number) => void;
-  images: ProcessedImage[];
+  images: Array<ProcessedImage>;
 }
 
 interface BackgroundOptionProps {
@@ -53,7 +58,7 @@ function BackgroundOption({
         small ? "p-2" : "p-3",
         selected
           ? "border-primary bg-primary/5"
-          : "border-muted hover:border-muted-foreground/50"
+          : "border-muted hover:border-muted-foreground/50",
       )}
     >
       {selected && (
@@ -62,17 +67,21 @@ function BackgroundOption({
           strokeWidth={2}
           className={cn(
             "absolute text-primary",
-            small ? "right-1 top-1 size-3" : "right-1.5 top-1.5 size-4"
+            small ? "right-1 top-1 size-3" : "right-1.5 top-1.5 size-4",
           )}
         />
       )}
-      <div className={cn(
-        "flex items-center justify-center rounded-md",
-        small ? "size-6" : "size-10"
-      )}>
+      <div
+        className={cn(
+          "flex items-center justify-center rounded-md",
+          small ? "size-6" : "size-10",
+        )}
+      >
         {preview || icon}
       </div>
-      <span className={cn("font-medium", small ? "text-[10px]" : "text-xs")}>{label}</span>
+      <span className={cn("font-medium", small ? "text-[10px]" : "text-xs")}>
+        {label}
+      </span>
     </button>
   );
 }
@@ -92,7 +101,9 @@ export function BackgroundPicker({
 }: BackgroundPickerProps) {
   const [isPickingColor, setIsPickingColor] = useState(false);
   const [pickerImageUrl, setPickerImageUrl] = useState<string | null>(null);
-  const [pickerTarget, setPickerTarget] = useState<"custom" | "ambient">("custom");
+  const [pickerTarget, setPickerTarget] = useState<"custom" | "ambient">(
+    "custom",
+  );
   const imageRef = useRef<HTMLImageElement>(null);
 
   const handleEyedropperClick = async (target: "custom" | "ambient") => {
@@ -135,7 +146,7 @@ export function BackgroundPicker({
         x,
         y,
         rect.width,
-        rect.height
+        rect.height,
       );
       if (pickerTarget === "custom") {
         onCustomColorChange(color);
@@ -222,7 +233,9 @@ export function BackgroundPicker({
       {background === "ambient" && (
         <div className="space-y-4 rounded-lg border bg-muted/30 p-3">
           <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">Ambient Base Color</Label>
+            <Label className="text-xs text-muted-foreground">
+              Ambient Base Color
+            </Label>
             <div className="grid grid-cols-3 gap-2">
               <BackgroundOption
                 label="Black"
@@ -263,7 +276,9 @@ export function BackgroundPicker({
 
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label className="text-xs text-muted-foreground">Blur Radius</Label>
+              <Label className="text-xs text-muted-foreground">
+                Blur Radius
+              </Label>
               <span className="text-xs font-medium text-muted-foreground">
                 {blurRadius}px
               </span>

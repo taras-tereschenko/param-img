@@ -1,31 +1,36 @@
-import { useReducer, useCallback, useState } from "react";
+import { useCallback, useReducer, useState } from "react";
+import { useNavigate, useSearch } from "@tanstack/react-router";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { DownloadIcon, Loading01Icon } from "@hugeicons/core-free-icons";
 import { ImageCarousel } from "./image-carousel";
 import { ActionBar } from "./action-bar";
 import { BlurPanel } from "./blur-panel";
 import { AmbientPanel } from "./ambient-panel";
 import { ColorPanel } from "./color-panel";
 import { ResizePanel } from "./resize-panel";
+import type {
+  AmbientBaseType,
+  BackgroundType,
+  BorderRadiusOption,
+  ProcessedImage,
+} from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { DownloadIcon, Loading01Icon } from "@hugeicons/core-free-icons";
 import {
-  type ProcessedImage,
-  type BackgroundType,
-  type AmbientBaseType,
-  DEFAULT_SCALE,
-  DEFAULT_BLUR_RADIUS,
   DEFAULT_AMBIENT_BLUR_RADIUS,
+  DEFAULT_BLUR_RADIUS,
+  DEFAULT_BORDER_RADIUS,
+  DEFAULT_SCALE,
 } from "@/lib/types";
 import {
+  createStoryFilename,
   fileToDataUrl,
   generateImageId,
   prepareImage,
-  createStoryFilename,
 } from "@/lib/image-utils";
 import { processImageForStory } from "@/lib/canvas-utils";
 
 interface State {
-  images: ProcessedImage[];
+  images: Array<ProcessedImage>;
   background: BackgroundType;
   customColor: string | null;
   ambientBase: AmbientBaseType;
@@ -33,10 +38,11 @@ interface State {
   blurRadius: number;
   ambientBlurRadius: number;
   scale: number;
+  borderRadius: BorderRadiusOption;
 }
 
 type Action =
-  | { type: "ADD_IMAGES"; images: ProcessedImage[] }
+  | { type: "ADD_IMAGES"; images: Array<ProcessedImage> }
   | { type: "REMOVE_IMAGE"; id: string }
   | { type: "SET_BACKGROUND"; background: BackgroundType }
   | { type: "SET_CUSTOM_COLOR"; color: string | null }
@@ -45,6 +51,7 @@ type Action =
   | { type: "SET_BLUR_RADIUS"; blurRadius: number }
   | { type: "SET_AMBIENT_BLUR_RADIUS"; ambientBlurRadius: number }
   | { type: "SET_SCALE"; scale: number }
+  | { type: "SET_BORDER_RADIUS"; borderRadius: BorderRadiusOption }
   | { type: "CLEAR_ALL" };
 
 function reducer(state: State, action: Action): State {
@@ -70,8 +77,15 @@ function reducer(state: State, action: Action): State {
       return { ...state, ambientBlurRadius: action.ambientBlurRadius };
     case "SET_SCALE":
       return { ...state, scale: action.scale };
+    case "SET_BORDER_RADIUS":
+      return { ...state, borderRadius: action.borderRadius };
     case "CLEAR_ALL":
-      return { ...state, images: [], customColor: null, ambientCustomColor: null };
+      return {
+        ...state,
+        images: [],
+        customColor: null,
+        ambientCustomColor: null,
+      };
     default:
       return state;
   }
@@ -86,9 +100,8 @@ const initialState: State = {
   blurRadius: DEFAULT_BLUR_RADIUS,
   ambientBlurRadius: DEFAULT_AMBIENT_BLUR_RADIUS,
   scale: DEFAULT_SCALE,
+  borderRadius: DEFAULT_BORDER_RADIUS,
 };
-
-type SheetType = "blur" | "ambient" | "color" | "resize" | null;
 
 function downloadDataUrl(dataUrl: string, filename: string): void {
   const link = document.createElement("a");
@@ -101,23 +114,60 @@ function downloadDataUrl(dataUrl: string, filename: string): void {
 
 export function StoryResizer() {
   const [state, dispatch] = useReducer(reducer, initialState);
-  const { images, background, customColor, ambientBase, ambientCustomColor, blurRadius, ambientBlurRadius, scale } = state;
+  const {
+    images,
+    background,
+    customColor,
+    ambientBase,
+    ambientCustomColor,
+    blurRadius,
+    ambientBlurRadius,
+    scale,
+    borderRadius,
+  } = state;
 
   // Get the active blur radius based on current background mode
-  const activeBlurRadius = background === "ambient" ? ambientBlurRadius : blurRadius;
+  const activeBlurRadius =
+    background === "ambient" ? ambientBlurRadius : blurRadius;
 
-  const [activeSheet, setActiveSheet] = useState<SheetType>(null);
+  // URL-based panel state for browser back button support
+  const navigate = useNavigate();
+  const { panel: activeSheet } = useSearch({ from: "/" });
+
+  const openPanel = useCallback(
+    (panel: "blur" | "ambient" | "color" | "resize") => {
+      navigate({
+        to: "/",
+        search: { panel },
+        resetScroll: false,
+      });
+    },
+    [navigate],
+  );
+
+  const closePanel = useCallback(() => {
+    navigate({
+      to: "/",
+      search: { panel: null },
+      resetScroll: false,
+    });
+  }, [navigate]);
+
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
 
   // Derived state for color sheet - only show custom as selected if it's actually custom
-  const colorSheetSelection = background === "black" ? "black"
-    : background === "white" ? "white"
-    : background === "custom" ? "custom"
-    : "black"; // Default to black for blur/ambient modes
+  const colorSheetSelection =
+    background === "black"
+      ? "black"
+      : background === "white"
+        ? "white"
+        : background === "custom"
+          ? "custom"
+          : "black"; // Default to black for blur/ambient modes
 
-  const handleFilesAdded = useCallback(async (files: File[]) => {
-    const newImages: ProcessedImage[] = await Promise.all(
+  const handleFilesAdded = useCallback(async (files: Array<File>) => {
+    const newImages: Array<ProcessedImage> = await Promise.all(
       files.map(async (file) => {
         const dataUrl = await fileToDataUrl(file);
         const preparedDataUrl = await prepareImage(dataUrl);
@@ -132,7 +182,7 @@ export function StoryResizer() {
           scale: DEFAULT_SCALE,
           status: "pending" as const,
         };
-      })
+      }),
     );
 
     dispatch({ type: "ADD_IMAGES", images: newImages });
@@ -142,20 +192,27 @@ export function StoryResizer() {
     dispatch({ type: "REMOVE_IMAGE", id });
   }, []);
 
-  const handleActionClick = useCallback((action: "blur" | "ambient" | "color" | "resize") => {
-    setActiveSheet(action);
-    // Set the background type when opening the panel
-    if (action === "blur") {
-      dispatch({ type: "SET_BACKGROUND", background: "blur" });
-    } else if (action === "ambient") {
-      dispatch({ type: "SET_BACKGROUND", background: "ambient" });
-    } else if (action === "color") {
-      // Default to black when opening color panel (unless custom color is already set)
-      if (background !== "black" && background !== "white" && background !== "custom") {
-        dispatch({ type: "SET_BACKGROUND", background: "black" });
+  const handleActionClick = useCallback(
+    (action: "blur" | "ambient" | "color" | "resize") => {
+      openPanel(action);
+      // Set the background type when opening the panel
+      if (action === "blur") {
+        dispatch({ type: "SET_BACKGROUND", background: "blur" });
+      } else if (action === "ambient") {
+        dispatch({ type: "SET_BACKGROUND", background: "ambient" });
+      } else if (action === "color") {
+        // Default to black when opening color panel (unless custom color is already set)
+        if (
+          background !== "black" &&
+          background !== "white" &&
+          background !== "custom"
+        ) {
+          dispatch({ type: "SET_BACKGROUND", background: "black" });
+        }
       }
-    }
-  }, [background]);
+    },
+    [background, openPanel],
+  );
 
   // Ambient handlers
   const handleAmbientBaseChange = useCallback((base: AmbientBaseType) => {
@@ -179,15 +236,18 @@ export function StoryResizer() {
   }, []);
 
   // Color handlers
-  const handleColorSelect = useCallback((color: "black" | "white" | "custom") => {
-    if (color === "black") {
-      dispatch({ type: "SET_BACKGROUND", background: "black" });
-    } else if (color === "white") {
-      dispatch({ type: "SET_BACKGROUND", background: "white" });
-    } else {
-      dispatch({ type: "SET_BACKGROUND", background: "custom" });
-    }
-  }, []);
+  const handleColorSelect = useCallback(
+    (color: "black" | "white" | "custom") => {
+      if (color === "black") {
+        dispatch({ type: "SET_BACKGROUND", background: "black" });
+      } else if (color === "white") {
+        dispatch({ type: "SET_BACKGROUND", background: "white" });
+      } else {
+        dispatch({ type: "SET_BACKGROUND", background: "custom" });
+      }
+    },
+    [],
+  );
 
   const handleCustomColorChange = useCallback((color: string) => {
     dispatch({ type: "SET_CUSTOM_COLOR", color });
@@ -198,6 +258,14 @@ export function StoryResizer() {
   const handleScaleChange = useCallback((newScale: number) => {
     dispatch({ type: "SET_SCALE", scale: newScale });
   }, []);
+
+  // Border radius handler
+  const handleBorderRadiusChange = useCallback(
+    (newBorderRadius: BorderRadiusOption) => {
+      dispatch({ type: "SET_BORDER_RADIUS", borderRadius: newBorderRadius });
+    },
+    [],
+  );
 
   // Download handler
   const handleDownload = useCallback(async () => {
@@ -216,7 +284,8 @@ export function StoryResizer() {
           scale,
           ambientBase,
           ambientCustomColor,
-          activeBlurRadius
+          activeBlurRadius,
+          borderRadius,
         );
 
         const filename = createStoryFilename(image.originalFile.name);
@@ -234,104 +303,117 @@ export function StoryResizer() {
       setIsDownloading(false);
       setDownloadProgress(0);
     }
-  }, [images, background, customColor, scale, ambientBase, ambientCustomColor, activeBlurRadius]);
+  }, [
+    images,
+    background,
+    customColor,
+    scale,
+    ambientBase,
+    ambientCustomColor,
+    activeBlurRadius,
+    borderRadius,
+  ]);
 
   // Single image download handler
-  const handleDownloadImage = useCallback((processedUrl: string, originalFilename: string) => {
-    const filename = createStoryFilename(originalFilename);
-    downloadDataUrl(processedUrl, filename);
-  }, []);
+  const handleDownloadImage = useCallback(
+    (processedUrl: string, originalFilename: string) => {
+      const filename = createStoryFilename(originalFilename);
+      downloadDataUrl(processedUrl, filename);
+    },
+    [],
+  );
 
   const hasImages = images.length > 0;
 
   // Map background type to active action for visual feedback
-  const activeAction = background === "blur" ? "blur"
-    : background === "ambient" ? "ambient"
-    : (background === "black" || background === "white" || background === "custom") ? "color"
-    : null;
+  const activeAction =
+    background === "blur"
+      ? "blur"
+      : background === "ambient"
+        ? "ambient"
+        : "color"; // black, white, or custom
 
   return (
     <div className="flex h-[100dvh] flex-col items-center justify-center bg-muted/30 md:p-8">
       {/* Centered container for desktop */}
       <div className="flex h-full w-full flex-col bg-background shadow-none md:aspect-[1/2] md:w-auto md:overflow-hidden md:rounded-2xl md:shadow-xl">
-      {/* Header */}
-      <header className="flex items-center justify-between border-b px-4 py-3">
-        <h1 className="text-lg font-semibold">Param Img</h1>
-        {hasImages && (
-          <Button
-            size="sm"
-            onClick={handleDownload}
-            disabled={isDownloading}
-          >
-            <HugeiconsIcon
-              icon={isDownloading ? Loading01Icon : DownloadIcon}
-              strokeWidth={2}
-              data-icon="inline-start"
-              className={isDownloading ? "animate-spin" : undefined}
-            />
-            {isDownloading
-              ? `${Math.round(downloadProgress)}%`
-              : `Export images (${images.length})`}
-          </Button>
-        )}
-      </header>
+        {/* Header */}
+        <header className="flex items-center justify-between border-b px-4 py-3">
+          <h1 className="text-lg font-semibold">Param Img</h1>
+          {hasImages && (
+            <Button size="sm" onClick={handleDownload} disabled={isDownloading}>
+              <HugeiconsIcon
+                icon={isDownloading ? Loading01Icon : DownloadIcon}
+                strokeWidth={2}
+                data-icon="inline-start"
+                className={isDownloading ? "animate-spin" : undefined}
+              />
+              {isDownloading
+                ? `${Math.round(downloadProgress)}%`
+                : `Export images (${images.length})`}
+            </Button>
+          )}
+        </header>
 
-      {/* Main carousel area */}
-      <main className="min-h-0 flex-1 overflow-hidden">
-        <ImageCarousel
-          images={images}
-          background={background}
-          customColor={customColor}
-          ambientBase={ambientBase}
-          ambientCustomColor={ambientCustomColor}
-          blurRadius={activeBlurRadius}
-          scale={scale}
-          onFilesAdded={handleFilesAdded}
-          onRemoveImage={handleRemoveImage}
-          onDownloadImage={handleDownloadImage}
-        />
-      </main>
-
-      {/* Bottom panel area */}
-      <footer className="border-t bg-background">
-        {activeSheet === null ? (
-          <ActionBar
-            disabled={!hasImages}
-            activeAction={activeAction}
-            onActionClick={handleActionClick}
-          />
-        ) : activeSheet === "blur" ? (
-          <BlurPanel
-            blurRadius={blurRadius}
-            onBlurRadiusChange={handleBlurPanelRadiusChange}
-            onBack={() => setActiveSheet(null)}
-          />
-        ) : activeSheet === "ambient" ? (
-          <AmbientPanel
+        {/* Main carousel area */}
+        <main className="min-h-0 flex-1 overflow-hidden">
+          <ImageCarousel
+            images={images}
+            background={background}
+            customColor={customColor}
             ambientBase={ambientBase}
             ambientCustomColor={ambientCustomColor}
-            blurRadius={ambientBlurRadius}
-            onAmbientBaseChange={handleAmbientBaseChange}
-            onAmbientCustomColorChange={handleAmbientCustomColorChange}
-            onBlurRadiusChange={handleAmbientBlurRadiusChange}
-            onBack={() => setActiveSheet(null)}
-          />
-        ) : activeSheet === "color" ? (
-          <ColorPanel
-            selectedColor={colorSheetSelection}
-            customColor={customColor}
-            onColorSelect={handleColorSelect}
-            onCustomColorChange={handleCustomColorChange}
-            onBack={() => setActiveSheet(null)}
-          />
-        ) : activeSheet === "resize" ? (
-          <ResizePanel
+            blurRadius={activeBlurRadius}
             scale={scale}
-            onScaleChange={handleScaleChange}
-            onBack={() => setActiveSheet(null)}
+            borderRadius={borderRadius}
+            onFilesAdded={handleFilesAdded}
+            onRemoveImage={handleRemoveImage}
+            onDownloadImage={handleDownloadImage}
           />
-        ) : null}
-      </footer>
+        </main>
+
+        {/* Bottom panel area */}
+        <footer className="border-t bg-background">
+          {activeSheet === null ? (
+            <ActionBar
+              disabled={!hasImages}
+              activeAction={activeAction}
+              onActionClick={handleActionClick}
+            />
+          ) : activeSheet === "blur" ? (
+            <BlurPanel
+              blurRadius={blurRadius}
+              onBlurRadiusChange={handleBlurPanelRadiusChange}
+              onBack={closePanel}
+            />
+          ) : activeSheet === "ambient" ? (
+            <AmbientPanel
+              ambientBase={ambientBase}
+              ambientCustomColor={ambientCustomColor}
+              blurRadius={ambientBlurRadius}
+              onAmbientBaseChange={handleAmbientBaseChange}
+              onAmbientCustomColorChange={handleAmbientCustomColorChange}
+              onBlurRadiusChange={handleAmbientBlurRadiusChange}
+              onBack={closePanel}
+            />
+          ) : activeSheet === "color" ? (
+            <ColorPanel
+              selectedColor={colorSheetSelection}
+              customColor={customColor}
+              onColorSelect={handleColorSelect}
+              onCustomColorChange={handleCustomColorChange}
+              onBack={closePanel}
+            />
+          ) : (
+            <ResizePanel
+              scale={scale}
+              onScaleChange={handleScaleChange}
+              borderRadius={borderRadius}
+              onBorderRadiusChange={handleBorderRadiusChange}
+              onBack={closePanel}
+            />
+          )}
+        </footer>
       </div>
     </div>
   );

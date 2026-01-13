@@ -1,10 +1,10 @@
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  ColorPickerIcon,
   CheckmarkCircle02Icon,
+  ColorPickerIcon,
 } from "@hugeicons/core-free-icons";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 interface ColorPanelProps {
@@ -25,7 +25,15 @@ interface ColorOptionProps {
   icon?: React.ReactNode;
 }
 
-function ColorOption({ label, selected, onClick, disabled, title, preview, icon }: ColorOptionProps) {
+function ColorOption({
+  label,
+  selected,
+  onClick,
+  disabled,
+  title,
+  preview,
+  icon,
+}: ColorOptionProps) {
   return (
     <button
       type="button"
@@ -38,7 +46,7 @@ function ColorOption({ label, selected, onClick, disabled, title, preview, icon 
           ? "cursor-not-allowed border-muted bg-muted/50 text-muted-foreground/50"
           : selected
             ? "border-primary bg-primary/5"
-            : "border-muted hover:border-muted-foreground/50"
+            : "border-muted hover:border-muted-foreground/50",
       )}
     >
       {selected && !disabled && (
@@ -56,7 +64,8 @@ function ColorOption({ label, selected, onClick, disabled, title, preview, icon 
   );
 }
 
-const isEyeDropperSupported = typeof window !== "undefined" && "EyeDropper" in window;
+const isEyeDropperSupported =
+  typeof window !== "undefined" && "EyeDropper" in window;
 
 export function ColorPanel({
   selectedColor,
@@ -105,7 +114,11 @@ export function ColorPanel({
               selected={selectedColor === "custom"}
               onClick={handleEyedropperClick}
               disabled={!isEyeDropperSupported}
-              title={!isEyeDropperSupported ? "EyeDropper not supported in this browser" : undefined}
+              title={
+                !isEyeDropperSupported
+                  ? "EyeDropper not supported in this browser"
+                  : undefined
+              }
               icon={
                 customColor ? (
                   <div

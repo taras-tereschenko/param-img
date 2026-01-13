@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Delete02Icon, Loading01Icon } from "@hugeicons/core-free-icons";
+import type {
+  AmbientBaseType,
+  BackgroundType,
+  ProcessedImage,
+} from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { type ProcessedImage, type BackgroundType, type AmbientBaseType } from "@/lib/types";
 import { processImageForStory } from "@/lib/canvas-utils";
 
 interface ImagePreviewProps {
@@ -42,7 +46,7 @@ export function ImagePreview({
           scale,
           ambientBase,
           ambientCustomColor,
-          blurRadius
+          blurRadius,
         );
         if (!cancelled) {
           setProcessedUrl(result);
@@ -61,7 +65,15 @@ export function ImagePreview({
     return () => {
       cancelled = true;
     };
-  }, [image.originalDataUrl, background, customColor, ambientBase, ambientCustomColor, blurRadius, scale]);
+  }, [
+    image.originalDataUrl,
+    background,
+    customColor,
+    ambientBase,
+    ambientCustomColor,
+    blurRadius,
+    scale,
+  ]);
 
   return (
     <div className="group relative overflow-hidden rounded-lg border bg-muted">

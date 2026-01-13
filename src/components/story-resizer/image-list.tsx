@@ -1,8 +1,12 @@
 import { ImagePreview } from "./image-preview";
-import { type ProcessedImage, type BackgroundType, type AmbientBaseType } from "@/lib/types";
+import type {
+  AmbientBaseType,
+  BackgroundType,
+  ProcessedImage,
+} from "@/lib/types";
 
 interface ImageListProps {
-  images: ProcessedImage[];
+  images: Array<ProcessedImage>;
   background: BackgroundType;
   customColor: string | null;
   ambientBase: AmbientBaseType;

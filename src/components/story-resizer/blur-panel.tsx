@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { MIN_BLUR_RADIUS, MAX_BLUR_RADIUS } from "@/lib/types";
+import { MAX_BLUR_RADIUS, MIN_BLUR_RADIUS } from "@/lib/types";
 
 interface BlurPanelProps {
   blurRadius: number;
@@ -24,7 +24,9 @@ export function BlurPanel({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label className="text-xs">Blur Radius</Label>
-            <span className="text-xs text-muted-foreground">{blurRadius}px</span>
+            <span className="text-xs text-muted-foreground">
+              {blurRadius}px
+            </span>
           </div>
           <Slider
             value={[blurRadius]}

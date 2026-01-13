@@ -14,7 +14,7 @@ interface ThemeProviderState {
 }
 
 const ThemeProviderContext = createContext<ThemeProviderState | undefined>(
-  undefined
+  undefined,
 );
 
 export function ThemeProvider({
@@ -24,7 +24,8 @@ export function ThemeProvider({
 }: ThemeProviderProps) {
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window === "undefined") return defaultTheme;
-    return (localStorage.getItem(storageKey) as Theme) || defaultTheme;
+    const stored = localStorage.getItem(storageKey);
+    return (stored as Theme | null) ?? defaultTheme;
   });
 
   useEffect(() => {

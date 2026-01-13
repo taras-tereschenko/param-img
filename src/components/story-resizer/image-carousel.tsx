@@ -1,37 +1,39 @@
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  CloudUploadIcon,
   Add01Icon,
+  CloudUploadIcon,
   Delete02Icon,
   DownloadCircle02Icon,
   Loading01Icon,
 } from "@hugeicons/core-free-icons";
+import type {
+  AmbientBaseType,
+  BackgroundType,
+  BorderRadiusOption,
+  ProcessedImage,
+} from "@/lib/types";
+import type { CarouselApi } from "@/components/ui/carousel";
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
-  type CarouselApi,
 } from "@/components/ui/carousel";
 import { Button } from "@/components/ui/button";
-import {
-  type ProcessedImage,
-  type BackgroundType,
-  type AmbientBaseType,
-} from "@/lib/types";
 import { processImageForStory } from "@/lib/canvas-utils";
 import { cn } from "@/lib/utils";
 
 interface ImageCarouselProps {
-  images: ProcessedImage[];
+  images: Array<ProcessedImage>;
   background: BackgroundType;
   customColor: string | null;
   ambientBase: AmbientBaseType;
   ambientCustomColor: string | null;
   blurRadius: number;
   scale: number;
-  onFilesAdded: (files: File[]) => void;
+  borderRadius: BorderRadiusOption;
+  onFilesAdded: (files: Array<File>) => void;
   onRemoveImage: (id: string) => void;
   onDownloadImage: (processedUrl: string, filename: string) => void;
 }
@@ -44,6 +46,7 @@ interface PreviewItemProps {
   ambientCustomColor: string | null;
   blurRadius: number;
   scale: number;
+  borderRadius: BorderRadiusOption;
   onRemove: () => void;
   onDownload: (processedUrl: string) => void;
   onPrev?: () => void;
@@ -60,6 +63,7 @@ function PreviewItem({
   ambientCustomColor,
   blurRadius,
   scale,
+  borderRadius,
   onRemove,
   onDownload,
   onPrev,
@@ -83,7 +87,8 @@ function PreviewItem({
           scale,
           ambientBase,
           ambientCustomColor,
-          blurRadius
+          blurRadius,
+          borderRadius,
         );
         if (!cancelled) {
           setProcessedUrl(result);
@@ -110,6 +115,7 @@ function PreviewItem({
     ambientCustomColor,
     blurRadius,
     scale,
+    borderRadius,
   ]);
 
   return (
@@ -159,7 +165,19 @@ function PreviewItem({
             className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
             onClick={onPrev}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="m15 18-6-6 6-6" />
+            </svg>
             <span className="sr-only">Previous</span>
           </Button>
         )}
@@ -170,7 +188,19 @@ function PreviewItem({
             className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
             onClick={onNext}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="m9 18 6-6-6-6" />
+            </svg>
             <span className="sr-only">Next</span>
           </Button>
         )}
@@ -180,18 +210,23 @@ function PreviewItem({
 }
 
 interface AddMoreItemProps {
-  onFilesAdded: (files: File[]) => void;
+  onFilesAdded: (files: Array<File>) => void;
   isOnlyItem: boolean;
   onPrev?: () => void;
   canScrollPrev?: boolean;
 }
 
-function AddMoreItem({ onFilesAdded, isOnlyItem, onPrev, canScrollPrev }: AddMoreItemProps) {
+function AddMoreItem({
+  onFilesAdded,
+  isOnlyItem,
+  onPrev,
+  canScrollPrev,
+}: AddMoreItemProps) {
   const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
+    (acceptedFiles: Array<File>) => {
       onFilesAdded(acceptedFiles);
     },
-    [onFilesAdded]
+    [onFilesAdded],
   );
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -212,7 +247,7 @@ function AddMoreItem({ onFilesAdded, isOnlyItem, onPrev, canScrollPrev }: AddMor
           "flex h-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed transition-colors",
           isDragActive
             ? "border-primary bg-primary/5"
-            : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50"
+            : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50",
         )}
       >
         <input {...getInputProps()} />
@@ -220,7 +255,7 @@ function AddMoreItem({ onFilesAdded, isOnlyItem, onPrev, canScrollPrev }: AddMor
           <div
             className={cn(
               "flex size-16 items-center justify-center rounded-full",
-              isDragActive ? "bg-primary/10" : "bg-muted"
+              isDragActive ? "bg-primary/10" : "bg-muted",
             )}
           >
             <HugeiconsIcon
@@ -228,7 +263,7 @@ function AddMoreItem({ onFilesAdded, isOnlyItem, onPrev, canScrollPrev }: AddMor
               strokeWidth={1.5}
               className={cn(
                 "size-8",
-                isDragActive ? "text-primary" : "text-muted-foreground"
+                isDragActive ? "text-primary" : "text-muted-foreground",
               )}
             />
           </div>
@@ -258,7 +293,19 @@ function AddMoreItem({ onFilesAdded, isOnlyItem, onPrev, canScrollPrev }: AddMor
             onPrev();
           }}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="m15 18-6-6 6-6" />
+          </svg>
           <span className="sr-only">Previous</span>
         </Button>
       )}
@@ -274,6 +321,7 @@ export function ImageCarousel({
   ambientCustomColor,
   blurRadius,
   scale,
+  borderRadius,
   onFilesAdded,
   onRemoveImage,
   onDownloadImage,
@@ -315,7 +363,9 @@ export function ImageCarousel({
   }
 
   return (
-    <div className={cn("flex h-full flex-col pt-4", count > 1 ? "pb-0" : "pb-4")}>
+    <div
+      className={cn("flex h-full flex-col pt-4", count > 1 ? "pb-0" : "pb-4")}
+    >
       {/* Wrapper to center carousel */}
       <div className="relative min-h-0 flex-1 overflow-hidden">
         <Carousel
@@ -337,6 +387,7 @@ export function ImageCarousel({
                     ambientCustomColor={ambientCustomColor}
                     blurRadius={blurRadius}
                     scale={scale}
+                    borderRadius={borderRadius}
                     onRemove={() => onRemoveImage(image.id)}
                     onDownload={(url) =>
                       onDownloadImage(url, image.originalFile.name)
@@ -376,7 +427,7 @@ export function ImageCarousel({
                 "size-2 rounded-full transition-all",
                 current === index
                   ? "w-6 bg-primary"
-                  : "bg-muted-foreground/30 hover:bg-muted-foreground/50"
+                  : "bg-muted-foreground/30 hover:bg-muted-foreground/50",
               )}
             >
               <span className="sr-only">Go to slide {index + 1}</span>

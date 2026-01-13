@@ -1,15 +1,25 @@
+import type { BorderRadiusOption } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { MIN_SCALE, MAX_SCALE } from "@/lib/types";
+import { BORDER_RADIUS_OPTIONS, MAX_SCALE, MIN_SCALE } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 interface ResizePanelProps {
   scale: number;
   onScaleChange: (scale: number) => void;
+  borderRadius: BorderRadiusOption;
+  onBorderRadiusChange: (borderRadius: BorderRadiusOption) => void;
   onBack: () => void;
 }
 
-export function ResizePanel({ scale, onScaleChange, onBack }: ResizePanelProps) {
+export function ResizePanel({
+  scale,
+  onScaleChange,
+  borderRadius,
+  onBorderRadiusChange,
+  onBack,
+}: ResizePanelProps) {
   return (
     <div className="p-4">
       <div className="mb-3">
@@ -37,6 +47,27 @@ export function ResizePanel({ scale, onScaleChange, onBack }: ResizePanelProps) 
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>Smaller</span>
             <span>Larger</span>
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label className="text-xs">Corner Radius</Label>
+          <div className="flex gap-2">
+            {BORDER_RADIUS_OPTIONS.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => onBorderRadiusChange(option.value)}
+                className={cn(
+                  "flex h-10 flex-1 items-center justify-center rounded-lg border-2 text-sm font-medium transition-colors",
+                  borderRadius === option.value
+                    ? "border-primary bg-primary/5"
+                    : "border-muted hover:border-muted-foreground/50",
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
         </div>
 

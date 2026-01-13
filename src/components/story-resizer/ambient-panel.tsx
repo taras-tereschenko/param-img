@@ -1,12 +1,13 @@
+import { HugeiconsIcon } from "@hugeicons/react";
+import {
+  CheckmarkCircle02Icon,
+  ColorPickerIcon,
+} from "@hugeicons/core-free-icons";
+import type { AmbientBaseType } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
-import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  ColorPickerIcon,
-  CheckmarkCircle02Icon,
-} from "@hugeicons/core-free-icons";
-import { type AmbientBaseType, MIN_BLUR_RADIUS, MAX_AMBIENT_BLUR_RADIUS } from "@/lib/types";
+import { MAX_AMBIENT_BLUR_RADIUS, MIN_BLUR_RADIUS } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 interface AmbientPanelProps {
@@ -29,7 +30,15 @@ interface BaseColorOptionProps {
   icon?: React.ReactNode;
 }
 
-function BaseColorOption({ label, selected, onClick, disabled, title, preview, icon }: BaseColorOptionProps) {
+function BaseColorOption({
+  label,
+  selected,
+  onClick,
+  disabled,
+  title,
+  preview,
+  icon,
+}: BaseColorOptionProps) {
   return (
     <button
       type="button"
@@ -42,7 +51,7 @@ function BaseColorOption({ label, selected, onClick, disabled, title, preview, i
           ? "cursor-not-allowed border-muted bg-muted/50 text-muted-foreground/50"
           : selected
             ? "border-primary bg-primary/5"
-            : "border-muted hover:border-muted-foreground/50"
+            : "border-muted hover:border-muted-foreground/50",
       )}
     >
       {selected && !disabled && (
@@ -60,7 +69,8 @@ function BaseColorOption({ label, selected, onClick, disabled, title, preview, i
   );
 }
 
-const isEyeDropperSupported = typeof window !== "undefined" && "EyeDropper" in window;
+const isEyeDropperSupported =
+  typeof window !== "undefined" && "EyeDropper" in window;
 
 export function AmbientPanel({
   ambientBase,
@@ -83,7 +93,6 @@ export function AmbientPanel({
       // User cancelled - do nothing
     }
   };
-
 
   return (
     <div className="p-4">
@@ -113,7 +122,11 @@ export function AmbientPanel({
               selected={ambientBase === "custom"}
               onClick={handleEyedropperClick}
               disabled={!isEyeDropperSupported}
-              title={!isEyeDropperSupported ? "EyeDropper not supported in this browser" : undefined}
+              title={
+                !isEyeDropperSupported
+                  ? "EyeDropper not supported in this browser"
+                  : undefined
+              }
               icon={
                 ambientCustomColor ? (
                   <div
@@ -136,7 +149,9 @@ export function AmbientPanel({
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label className="text-xs">Blur Radius</Label>
-            <span className="text-xs text-muted-foreground">{blurRadius}px</span>
+            <span className="text-xs text-muted-foreground">
+              {blurRadius}px
+            </span>
           </div>
           <Slider
             value={[blurRadius]}

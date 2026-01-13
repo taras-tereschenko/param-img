@@ -1,9 +1,9 @@
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   BlurIcon,
-  SunglassesIcon,
   PaintBucketIcon,
   Resize01Icon,
+  SunglassesIcon,
 } from "@hugeicons/core-free-icons";
 import { cn } from "@/lib/utils";
 
@@ -21,7 +21,13 @@ interface ActionButtonProps {
   onClick: () => void;
 }
 
-function ActionButton({ icon, label, disabled, active, onClick }: ActionButtonProps) {
+function ActionButton({
+  icon,
+  label,
+  disabled,
+  active,
+  onClick,
+}: ActionButtonProps) {
   return (
     <button
       type="button"
@@ -34,20 +40,20 @@ function ActionButton({ icon, label, disabled, active, onClick }: ActionButtonPr
           ? "cursor-not-allowed border-muted bg-muted/50 text-muted-foreground/50"
           : active
             ? "border-primary bg-primary/10 text-primary"
-            : "border-border bg-background text-foreground hover:border-primary/50 hover:bg-muted"
+            : "border-border bg-background text-foreground hover:border-primary/50 hover:bg-muted",
       )}
     >
-      <HugeiconsIcon
-        icon={icon}
-        strokeWidth={1.5}
-        className="size-6"
-      />
+      <HugeiconsIcon icon={icon} strokeWidth={1.5} className="size-6" />
       <span className="text-xs font-medium">{label}</span>
     </button>
   );
 }
 
-export function ActionBar({ disabled, activeAction, onActionClick }: ActionBarProps) {
+export function ActionBar({
+  disabled,
+  activeAction,
+  onActionClick,
+}: ActionBarProps) {
   return (
     <div className="grid grid-cols-4 gap-2 p-4">
       <ActionButton

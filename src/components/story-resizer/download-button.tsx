@@ -1,17 +1,21 @@
 import { useState } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
-  DownloadIcon,
   Delete02Icon,
+  DownloadIcon,
   Loading01Icon,
 } from "@hugeicons/core-free-icons";
+import type {
+  AmbientBaseType,
+  BackgroundType,
+  ProcessedImage,
+} from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { type ProcessedImage, type BackgroundType, type AmbientBaseType } from "@/lib/types";
 import { processImageForStory } from "@/lib/canvas-utils";
 import { createStoryFilename } from "@/lib/image-utils";
 
 interface DownloadButtonProps {
-  images: ProcessedImage[];
+  images: Array<ProcessedImage>;
   background: BackgroundType;
   customColor: string | null;
   ambientBase: AmbientBaseType;
@@ -59,7 +63,7 @@ export function DownloadButton({
           scale,
           ambientBase,
           ambientCustomColor,
-          blurRadius
+          blurRadius,
         );
 
         const filename = createStoryFilename(image.originalFile.name);
@@ -108,7 +112,11 @@ export function DownloadButton({
         onClick={onClearAll}
         disabled={isDownloading || images.length === 0}
       >
-        <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} data-icon="inline-start" />
+        <HugeiconsIcon
+          icon={Delete02Icon}
+          strokeWidth={2}
+          data-icon="inline-start"
+        />
         Clear All
       </Button>
     </div>

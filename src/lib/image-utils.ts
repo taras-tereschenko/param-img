@@ -1,7 +1,4 @@
-import {
-  ACCEPTED_IMAGE_TYPES,
-  MAX_SOURCE_DIMENSION,
-} from "./types";
+import { ACCEPTED_IMAGE_TYPES, MAX_SOURCE_DIMENSION } from "./types";
 
 /**
  * Convert a File to a data URL string
@@ -32,14 +29,14 @@ export function loadImage(src: string): Promise<HTMLImageElement> {
  */
 export function isValidImageType(file: File): boolean {
   return ACCEPTED_IMAGE_TYPES.includes(
-    file.type as (typeof ACCEPTED_IMAGE_TYPES)[number]
+    file.type as (typeof ACCEPTED_IMAGE_TYPES)[number],
   );
 }
 
 /**
  * Filter an array of files to only include valid images
  */
-export function filterValidImages(files: File[]): File[] {
+export function filterValidImages(files: Array<File>): Array<File> {
   return files.filter(isValidImageType);
 }
 
@@ -57,10 +54,7 @@ export function generateImageId(): string {
 export async function prepareImage(dataUrl: string): Promise<string> {
   const img = await loadImage(dataUrl);
 
-  if (
-    img.width <= MAX_SOURCE_DIMENSION &&
-    img.height <= MAX_SOURCE_DIMENSION
-  ) {
+  if (img.width <= MAX_SOURCE_DIMENSION && img.height <= MAX_SOURCE_DIMENSION) {
     return dataUrl;
   }
 

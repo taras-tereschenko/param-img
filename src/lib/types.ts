@@ -47,3 +47,13 @@ export const MAX_BLUR_RADIUS = 500;
 // Ambient mode blur radius (separate from blur mode)
 export const DEFAULT_AMBIENT_BLUR_RADIUS = 400;
 export const MAX_AMBIENT_BLUR_RADIUS = 1000;
+
+// Border radius options (as percentage of shorter image dimension)
+export type BorderRadiusOption = 0 | 1 | 2 | 3;
+export const BORDER_RADIUS_OPTIONS = [
+  { value: 0 as const, label: "None", percent: 0 },
+  { value: 1 as const, label: "S", percent: 2.5 },
+  { value: 2 as const, label: "M", percent: 5 },
+  { value: 3 as const, label: "L", percent: 10 },
+] as const;
+export const DEFAULT_BORDER_RADIUS: BorderRadiusOption = 0;

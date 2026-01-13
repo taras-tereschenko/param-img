@@ -1,23 +1,23 @@
 import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Image01Icon, CloudUploadIcon } from "@hugeicons/core-free-icons";
+import { CloudUploadIcon, Image01Icon } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface ImageDropZoneProps {
-  onFilesAdded: (files: File[]) => void;
+  onFilesAdded: (files: Array<File>) => void;
   disabled?: boolean;
 }
 
 export function ImageDropZone({ onFilesAdded, disabled }: ImageDropZoneProps) {
   const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
+    (acceptedFiles: Array<File>) => {
       if (acceptedFiles.length > 0) {
         onFilesAdded(acceptedFiles);
       }
     },
-    [onFilesAdded]
+    [onFilesAdded],
   );
 
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({
@@ -40,7 +40,7 @@ export function ImageDropZone({ onFilesAdded, disabled }: ImageDropZoneProps) {
         isDragActive
           ? "border-primary bg-primary/5"
           : "border-muted-foreground/25 hover:border-muted-foreground/50",
-        disabled && "pointer-events-none opacity-50"
+        disabled && "pointer-events-none opacity-50",
       )}
     >
       <input {...getInputProps()} />
@@ -49,7 +49,7 @@ export function ImageDropZone({ onFilesAdded, disabled }: ImageDropZoneProps) {
         <div
           className={cn(
             "rounded-full p-4 transition-colors",
-            isDragActive ? "bg-primary/10" : "bg-muted"
+            isDragActive ? "bg-primary/10" : "bg-muted",
           )}
         >
           <HugeiconsIcon
@@ -57,7 +57,7 @@ export function ImageDropZone({ onFilesAdded, disabled }: ImageDropZoneProps) {
             strokeWidth={1.5}
             className={cn(
               "size-8",
-              isDragActive ? "text-primary" : "text-muted-foreground"
+              isDragActive ? "text-primary" : "text-muted-foreground",
             )}
           />
         </div>
@@ -73,7 +73,12 @@ export function ImageDropZone({ onFilesAdded, disabled }: ImageDropZoneProps) {
           </p>
         </div>
 
-        <Button type="button" variant="outline" onClick={open} disabled={disabled}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={open}
+          disabled={disabled}
+        >
           Browse Files
         </Button>
       </div>
