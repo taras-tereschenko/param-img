@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
+import { useDebounce } from "@/lib/use-debounce";
 import { useDropzone } from "react-dropzone";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -55,7 +56,7 @@ interface PreviewItemProps {
   canScrollNext?: boolean;
 }
 
-function PreviewItem({
+const PreviewItem = memo(function PreviewItem({
   image,
   background,
   customColor,
@@ -74,6 +75,10 @@ function PreviewItem({
   const [processedUrl, setProcessedUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Debounce expensive slider values to prevent processing on every tick
+  const debouncedBlurRadius = useDebounce(blurRadius, 100);
+  const debouncedScale = useDebounce(scale, 100);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -84,10 +89,10 @@ function PreviewItem({
           image.originalDataUrl,
           background,
           customColor,
-          scale,
+          debouncedScale,
           ambientBase,
           ambientCustomColor,
-          blurRadius,
+          debouncedBlurRadius,
           borderRadius,
         );
         if (!cancelled) {
@@ -113,8 +118,8 @@ function PreviewItem({
     customColor,
     ambientBase,
     ambientCustomColor,
-    blurRadius,
-    scale,
+    debouncedBlurRadius,
+    debouncedScale,
     borderRadius,
   ]);
 
@@ -207,7 +212,7 @@ function PreviewItem({
       </div>
     </div>
   );
-}
+});
 
 interface AddMoreItemProps {
   onFilesAdded: (files: Array<File>) => void;

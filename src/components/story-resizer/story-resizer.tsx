@@ -1,4 +1,4 @@
-import { useCallback, useReducer, useState } from "react";
+import { useCallback, useMemo, useReducer, useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { DownloadIcon, Loading01Icon } from "@hugeicons/core-free-icons";
@@ -157,14 +157,12 @@ export function StoryResizer() {
   const [downloadProgress, setDownloadProgress] = useState(0);
 
   // Derived state for color sheet - only show custom as selected if it's actually custom
-  const colorSheetSelection =
-    background === "black"
-      ? "black"
-      : background === "white"
-        ? "white"
-        : background === "custom"
-          ? "custom"
-          : "black"; // Default to black for blur/ambient modes
+  const colorSheetSelection = useMemo(() => {
+    if (background === "black") return "black";
+    if (background === "white") return "white";
+    if (background === "custom") return "custom";
+    return "black"; // Default to black for blur/ambient modes
+  }, [background]);
 
   const handleFilesAdded = useCallback(async (files: Array<File>) => {
     const newImages: Array<ProcessedImage> = await Promise.all(
@@ -326,12 +324,11 @@ export function StoryResizer() {
   const hasImages = images.length > 0;
 
   // Map background type to active action for visual feedback
-  const activeAction =
-    background === "blur"
-      ? "blur"
-      : background === "ambient"
-        ? "ambient"
-        : "color"; // black, white, or custom
+  const activeAction = useMemo(() => {
+    if (background === "blur") return "blur";
+    if (background === "ambient") return "ambient";
+    return "color"; // black, white, or custom
+  }, [background]);
 
   return (
     <div className="flex h-[100dvh] flex-col items-center justify-center bg-muted/30 md:p-8">
@@ -374,7 +371,7 @@ export function StoryResizer() {
 
         {/* Bottom panel area */}
         <footer className="border-t bg-background">
-          {activeSheet === null ? (
+          {!activeSheet ? (
             <ActionBar
               disabled={!hasImages}
               activeAction={activeAction}
