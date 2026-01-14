@@ -127,5 +127,5 @@ export async function processImageForStory(
     ctx.drawImage(img, x, y, drawWidth, drawHeight);
   }
 
-  return canvas.toDataURL("image/jpeg", 0.95);
+  return canvas.toDataURL("image/png");
 }

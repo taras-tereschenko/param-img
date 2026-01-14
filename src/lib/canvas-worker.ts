@@ -184,7 +184,7 @@ async function processImageForStory(
   // Close the ImageBitmap to free memory
   img.close();
 
-  return canvas.convertToBlob({ type: "image/jpeg", quality: 0.95 });
+  return canvas.convertToBlob({ type: "image/png" });
 }
 
 // Worker message handler

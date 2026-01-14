@@ -61,5 +61,5 @@ export async function prepareImage(dataUrl: string): Promise<string> {
  */
 export function createStoryFilename(originalFilename: string): string {
   const nameWithoutExt = originalFilename.replace(/\.[^/.]+$/, "");
-  return `story_${nameWithoutExt}.jpg`;
+  return `story_${nameWithoutExt}.png`;
 }

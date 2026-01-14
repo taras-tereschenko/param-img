@@ -100,7 +100,7 @@ export function useImageExport(
         const response = await fetch(processedUrl);
         const blob = await response.blob();
         const filename = createStoryFilename(image.originalFile.name);
-        const file = new File([blob], filename, { type: "image/jpeg" });
+        const file = new File([blob], filename, { type: "image/png" });
         files.push(file);
       }
 
