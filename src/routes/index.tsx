@@ -1,11 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { StoryResizer } from "@/components/story-resizer/story-resizer";
 
-type PanelType = "blur" | "ambient" | "color" | "resize" | null;
+type PanelType = "blur" | "ambient" | "color" | "resize";
 
 export const Route = createFileRoute("/")({
   component: App,
-  validateSearch: (search: Record<string, unknown>): { panel: PanelType } => {
+  validateSearch: (search: Record<string, unknown>): { panel?: PanelType } => {
     const panel = search.panel;
     if (
       panel === "blur" ||
@@ -15,7 +15,7 @@ export const Route = createFileRoute("/")({
     ) {
       return { panel };
     }
-    return { panel: null };
+    return {};
   },
 });
 

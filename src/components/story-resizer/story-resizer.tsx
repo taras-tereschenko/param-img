@@ -148,7 +148,7 @@ export function StoryResizer() {
   const closePanel = useCallback(() => {
     navigate({
       to: "/",
-      search: { panel: null },
+      search: {},
       resetScroll: false,
     });
   }, [navigate]);
