@@ -20,6 +20,7 @@ const config = defineConfig({
     viteReact(),
     VitePWA({
       registerType: "prompt",
+      injectRegister: "script",
       includeAssets: ["favicon.png", "logo192.png", "logo512.png"],
       manifest: {
         name: "Param Img",
@@ -42,12 +43,11 @@ const config = defineConfig({
         ],
       },
       workbox: {
+        globDirectory: ".output/public",
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
         cleanupOutdatedCaches: true,
         navigateFallback: null,
       },
-      buildBase: "/",
-      outDir: ".output/public",
     }),
   ],
 });
