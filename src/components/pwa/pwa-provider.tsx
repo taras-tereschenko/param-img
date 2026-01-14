@@ -27,7 +27,9 @@ const DISMISS_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
 // This event fires very early, often before our component mounts
 let capturedPromptEvent: BeforeInstallPromptEvent | null = null;
 if (typeof window !== "undefined") {
+  console.log("[PWA] Setting up beforeinstallprompt listener");
   window.addEventListener("beforeinstallprompt", (e) => {
+    console.log("[PWA] beforeinstallprompt event fired!", e);
     e.preventDefault();
     capturedPromptEvent = e as BeforeInstallPromptEvent;
   });
@@ -50,6 +52,7 @@ export function PWAProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
+    console.log("[PWA] Provider mounted, capturedPromptEvent:", !!capturedPromptEvent);
     // Check again in case event fired between initial render and effect
     if (capturedPromptEvent && !deferredPrompt) {
       setDeferredPrompt(capturedPromptEvent);
@@ -57,6 +60,7 @@ export function PWAProvider({ children }: { children: ReactNode }) {
 
     // Continue listening for future events
     const handler = (e: Event) => {
+      console.log("[PWA] beforeinstallprompt in useEffect handler");
       e.preventDefault();
       capturedPromptEvent = e as BeforeInstallPromptEvent;
       setDeferredPrompt(e as BeforeInstallPromptEvent);
@@ -64,6 +68,16 @@ export function PWAProvider({ children }: { children: ReactNode }) {
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, [deferredPrompt]);
+
+  // Debug logging
+  useEffect(() => {
+    console.log("[PWA] State:", {
+      canInstall: !!deferredPrompt,
+      hasTriggered,
+      isDismissed,
+      shouldShow: hasTriggered && !isDismissed,
+    });
+  }, [deferredPrompt, hasTriggered, isDismissed]);
 
   const promptInstall = useCallback(async () => {
     if (!deferredPrompt) return;
@@ -80,6 +94,7 @@ export function PWAProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const triggerShow = useCallback(() => {
+    console.log("[PWA] triggerShow called");
     setHasTriggered(true);
   }, []);
 
