@@ -62,8 +62,6 @@ const Toaster = ({ ...props }: ToasterProps) => {
       toastOptions={{
         classNames: {
           toast: "cn-toast",
-          actionButton: "cn-toast-action",
-          cancelButton: "cn-toast-cancel",
         },
       }}
       {...props}
