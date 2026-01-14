@@ -10,6 +10,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 // EyeDropper API type declaration (not yet in standard TypeScript lib)
 declare global {
@@ -151,12 +152,12 @@ export function ColorToggleGroup({
           </ToggleGroupItem>
         ) : (
           <Tooltip>
-            <TooltipTrigger asChild className="flex flex-1">
-              <div className="w-full">
+            <TooltipTrigger asChild className="flex-1">
+              <div className="flex">
                 <ToggleGroupItem
                   value="custom"
                   disabled
-                  className={itemClassName}
+                  className={cn(itemClassName, "w-full")}
                 >
                   <div className={containerClasses}>
                     <HugeiconsIcon
