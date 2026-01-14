@@ -23,13 +23,24 @@ interface InstallPromptContextValue {
 const DISMISS_KEY = "pwa-install-dismissed";
 const DISMISS_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
 
+// Capture the beforeinstallprompt event globally before React hydrates
+// This event fires very early, often before our component mounts
+let capturedPromptEvent: BeforeInstallPromptEvent | null = null;
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    capturedPromptEvent = e as BeforeInstallPromptEvent;
+  });
+}
+
 const InstallPromptContext = createContext<InstallPromptContextValue | null>(
   null,
 );
 
 export function PWAProvider({ children }: { children: ReactNode }) {
+  // Initialize with any event that was captured before mount
   const [deferredPrompt, setDeferredPrompt] =
-    useState<BeforeInstallPromptEvent | null>(null);
+    useState<BeforeInstallPromptEvent | null>(() => capturedPromptEvent);
   const [hasTriggered, setHasTriggered] = useState(false);
   const [isDismissed, setIsDismissed] = useState(() => {
     if (typeof window === "undefined") return true;
@@ -39,13 +50,20 @@ export function PWAProvider({ children }: { children: ReactNode }) {
   });
 
   useEffect(() => {
+    // Check again in case event fired between initial render and effect
+    if (capturedPromptEvent && !deferredPrompt) {
+      setDeferredPrompt(capturedPromptEvent);
+    }
+
+    // Continue listening for future events
     const handler = (e: Event) => {
       e.preventDefault();
+      capturedPromptEvent = e as BeforeInstallPromptEvent;
       setDeferredPrompt(e as BeforeInstallPromptEvent);
     };
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);
-  }, []);
+  }, [deferredPrompt]);
 
   const promptInstall = useCallback(async () => {
     if (!deferredPrompt) return;
