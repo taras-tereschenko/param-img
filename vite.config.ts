@@ -44,7 +44,10 @@ const config = defineConfig({
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
         cleanupOutdatedCaches: true,
+        navigateFallback: null,
       },
+      buildBase: "/",
+      outDir: ".output/public",
     }),
   ],
 });
