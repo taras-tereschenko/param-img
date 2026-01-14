@@ -5,12 +5,12 @@ import {
 } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
 
 interface ColorPanelProps {
   selectedColor: "black" | "white" | "custom";
@@ -18,67 +18,6 @@ interface ColorPanelProps {
   onColorSelect: (color: "black" | "white" | "custom") => void;
   onCustomColorChange: (color: string) => void;
   onBack: () => void;
-}
-
-interface ColorOptionProps {
-  label: string;
-  selected: boolean;
-  onClick: () => void;
-  disabled?: boolean;
-  disabledReason?: string;
-  preview?: React.ReactNode;
-  icon?: React.ReactNode;
-}
-
-function ColorOption({
-  label,
-  selected,
-  onClick,
-  disabled,
-  disabledReason,
-  preview,
-  icon,
-}: ColorOptionProps) {
-  const button = (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        "relative flex flex-1 flex-col items-center gap-1.5 rounded-lg border-2 p-3 transition-colors",
-        disabled
-          ? "cursor-not-allowed border-muted bg-muted/50 text-muted-foreground/50"
-          : selected
-            ? "border-primary bg-primary/5"
-            : "border-muted hover:border-muted-foreground/50",
-      )}
-    >
-      {selected && !disabled && (
-        <HugeiconsIcon
-          icon={CheckmarkCircle02Icon}
-          strokeWidth={2}
-          className="absolute right-1.5 top-1.5 size-4 text-primary"
-        />
-      )}
-      <div className="flex size-8 items-center justify-center rounded-md">
-        {preview || icon}
-      </div>
-      <span className="text-xs font-medium">{label}</span>
-    </button>
-  );
-
-  if (disabled && disabledReason) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild className="flex-1">
-          <span>{button}</span>
-        </TooltipTrigger>
-        <TooltipContent>{disabledReason}</TooltipContent>
-      </Tooltip>
-    );
-  }
-
-  return button;
 }
 
 const isEyeDropperSupported =
@@ -104,6 +43,9 @@ export function ColorPanel({
     }
   };
 
+  const itemClassName =
+    "relative !flex !h-auto !min-w-0 flex-1 flex-col items-center gap-1.5 rounded-lg border p-3 transition-colors border-muted bg-background text-foreground hover:border-muted-foreground/50 aria-pressed:!border-primary aria-pressed:!bg-primary/5 disabled:cursor-not-allowed disabled:border-muted disabled:bg-muted/50 disabled:text-muted-foreground/50";
+
   return (
     <div className="p-4">
       <div className="mb-3">
@@ -113,41 +55,90 @@ export function ColorPanel({
       <div className="space-y-4">
         <div className="space-y-2">
           <Label className="text-xs">Background Color</Label>
-          <div className="flex gap-2">
-            <ColorOption
-              label="Black"
-              selected={selectedColor === "black"}
-              onClick={() => onColorSelect("black")}
-              preview={<div className="size-6 rounded-md bg-black" />}
-            />
-            <ColorOption
-              label="White"
-              selected={selectedColor === "white"}
-              onClick={() => onColorSelect("white")}
-              preview={<div className="size-6 rounded-md border bg-white" />}
-            />
-            <ColorOption
-              label="Pick"
-              selected={selectedColor === "custom"}
-              onClick={handleEyedropperClick}
-              disabled={!isEyeDropperSupported}
-              disabledReason="Color picker not supported in this browser"
-              icon={
-                customColor ? (
-                  <div
-                    className="size-6 rounded-md border"
-                    style={{ backgroundColor: customColor }}
-                  />
-                ) : (
-                  <HugeiconsIcon
-                    icon={ColorPickerIcon}
-                    strokeWidth={1.5}
-                    className="size-5 text-muted-foreground"
-                  />
-                )
+          <ToggleGroup
+            spacing={2}
+            className="w-full"
+            value={[selectedColor]}
+            onValueChange={(newValue) => {
+              const selected = newValue[newValue.length - 1] as typeof selectedColor;
+              if (selected === "custom") {
+                handleEyedropperClick();
+              } else if (selected) {
+                onColorSelect(selected);
               }
-            />
-          </div>
+            }}
+          >
+            <ToggleGroupItem value="black" className={itemClassName}>
+              <HugeiconsIcon
+                icon={CheckmarkCircle02Icon}
+                strokeWidth={1.5}
+                className="absolute right-1.5 top-1.5 size-4 text-primary opacity-0 aria-pressed:opacity-100"
+              />
+              <div className="flex size-8 items-center justify-center rounded-md">
+                <div className="size-6 rounded-md bg-black" />
+              </div>
+              <span className="text-xs font-medium">Black</span>
+            </ToggleGroupItem>
+
+            <ToggleGroupItem value="white" className={itemClassName}>
+              <HugeiconsIcon
+                icon={CheckmarkCircle02Icon}
+                strokeWidth={1.5}
+                className="absolute right-1.5 top-1.5 size-4 text-primary opacity-0 aria-pressed:opacity-100"
+              />
+              <div className="flex size-8 items-center justify-center rounded-md">
+                <div className="size-6 rounded-md border bg-white" />
+              </div>
+              <span className="text-xs font-medium">White</span>
+            </ToggleGroupItem>
+
+            {isEyeDropperSupported ? (
+              <ToggleGroupItem value="custom" className={itemClassName}>
+                <HugeiconsIcon
+                  icon={CheckmarkCircle02Icon}
+                  strokeWidth={1.5}
+                  className="absolute right-1.5 top-1.5 size-4 text-primary opacity-0 aria-pressed:opacity-100"
+                />
+                <div className="flex size-8 items-center justify-center rounded-md">
+                  {customColor ? (
+                    <div
+                      className="size-6 rounded-md border"
+                      style={{ backgroundColor: customColor }}
+                    />
+                  ) : (
+                    <HugeiconsIcon
+                      icon={ColorPickerIcon}
+                      strokeWidth={1.5}
+                      className="size-5 text-muted-foreground"
+                    />
+                  )}
+                </div>
+                <span className="text-xs font-medium">Pick</span>
+              </ToggleGroupItem>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild className="flex-1">
+                  <span>
+                    <ToggleGroupItem
+                      value="custom"
+                      disabled
+                      className={itemClassName}
+                    >
+                      <div className="flex size-8 items-center justify-center rounded-md">
+                        <HugeiconsIcon
+                          icon={ColorPickerIcon}
+                          strokeWidth={1.5}
+                          className="size-5 text-muted-foreground"
+                        />
+                      </div>
+                      <span className="text-xs font-medium">Pick</span>
+                    </ToggleGroupItem>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Color picker not supported in this browser</TooltipContent>
+              </Tooltip>
+            )}
+          </ToggleGroup>
         </div>
 
         <Button onClick={onBack} className="w-full">

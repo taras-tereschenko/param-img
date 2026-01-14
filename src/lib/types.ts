@@ -19,8 +19,8 @@ export interface ImageDimensions {
   height: number;
 }
 
-// Instagram Story aspect ratio: 9:16 (width:height)
-export const STORY_ASPECT_RATIO = 9 / 16;
+// Instagram Story aspect ratio: 9:21 (width:height) - taller for modern phone displays
+export const STORY_ASPECT_RATIO = 9 / 21;
 
 // Accepted image types for upload
 export const ACCEPTED_IMAGE_TYPES = [

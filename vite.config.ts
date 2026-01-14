@@ -19,6 +19,9 @@ const config = defineConfig({
     tanstackStart(),
     viteReact(),
     VitePWA({
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.ts",
       registerType: "prompt",
       injectRegister: "script",
       includeAssets: ["favicon.png", "logo192.png", "logo512.png"],
@@ -43,14 +46,25 @@ const config = defineConfig({
             type: "image/png",
           },
         ],
+        share_target: {
+          action: "/_share",
+          method: "POST",
+          enctype: "multipart/form-data",
+          params: {
+            files: [
+              {
+                name: "images",
+                accept: ["image/*"],
+              },
+            ],
+          },
+        },
       },
-      workbox: {
+      injectManifest: {
         globDirectory: process.env.VERCEL
           ? ".vercel/output/static"
           : ".output/public",
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
-        cleanupOutdatedCaches: true,
-        navigateFallback: null,
       },
     }),
   ],

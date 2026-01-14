@@ -46,7 +46,7 @@ interface CanvasDimensions {
 
 /**
  * Calculate canvas dimensions based on original image size
- * The canvas will have 9:16 aspect ratio, sized to fit the original image
+ * The canvas will have 9:21 aspect ratio, sized to fit the original image
  */
 function calculateCanvasDimensions(
   srcWidth: number,

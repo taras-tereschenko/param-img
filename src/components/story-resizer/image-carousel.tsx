@@ -170,7 +170,7 @@ const PreviewItem = memo(function PreviewItem({
 
   return (
     <div className="flex h-full items-center justify-center">
-      <div className="relative aspect-[9/16] h-full max-w-full overflow-hidden rounded-lg border">
+      <div className="relative aspect-[9/21] h-full max-w-full overflow-hidden rounded-lg border">
         {processedUrl && (
           <img
             src={processedUrl}

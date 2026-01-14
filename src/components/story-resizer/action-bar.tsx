@@ -5,7 +5,7 @@ import {
   Resize01Icon,
   SunglassesIcon,
 } from "@hugeicons/core-free-icons";
-import { cn } from "@/lib/utils";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 interface ActionBarProps {
   disabled: boolean;
@@ -13,41 +13,12 @@ interface ActionBarProps {
   onActionClick: (action: "blur" | "ambient" | "color" | "resize") => void;
 }
 
-interface ActionButtonProps {
-  icon: typeof BlurIcon;
-  label: string;
-  disabled: boolean;
-  active: boolean;
-  onClick: () => void;
-}
-
-function ActionButton({
-  icon,
-  label,
-  disabled,
-  active,
-  onClick,
-}: ActionButtonProps) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      className={cn(
-        "flex flex-1 flex-col items-center justify-center gap-1.5 rounded-xl p-3 transition-all",
-        "border-2",
-        disabled
-          ? "cursor-not-allowed border-muted bg-muted/50 text-muted-foreground/50"
-          : active
-            ? "border-primary bg-primary/10 text-primary"
-            : "border-border bg-background text-foreground hover:border-primary/50 hover:bg-muted",
-      )}
-    >
-      <HugeiconsIcon icon={icon} strokeWidth={1.5} className="size-6" />
-      <span className="text-xs font-medium">{label}</span>
-    </button>
-  );
-}
+const ACTION_OPTIONS = [
+  { value: "blur" as const, label: "Blur", icon: BlurIcon },
+  { value: "ambient" as const, label: "Ambient", icon: SunglassesIcon },
+  { value: "color" as const, label: "Color", icon: PaintBucketIcon },
+  { value: "resize" as const, label: "Resize", icon: Resize01Icon },
+];
 
 export function ActionBar({
   disabled,
@@ -55,35 +26,25 @@ export function ActionBar({
   onActionClick,
 }: ActionBarProps) {
   return (
-    <div className="grid grid-cols-4 gap-2 p-4">
-      <ActionButton
-        icon={BlurIcon}
-        label="Blur"
+    <div className="p-4">
+      <ToggleGroup
+        spacing={2}
+        className="w-full"
         disabled={disabled}
-        active={activeAction === "blur"}
-        onClick={() => onActionClick("blur")}
-      />
-      <ActionButton
-        icon={SunglassesIcon}
-        label="Ambient"
-        disabled={disabled}
-        active={activeAction === "ambient"}
-        onClick={() => onActionClick("ambient")}
-      />
-      <ActionButton
-        icon={PaintBucketIcon}
-        label="Color"
-        disabled={disabled}
-        active={activeAction === "color"}
-        onClick={() => onActionClick("color")}
-      />
-      <ActionButton
-        icon={Resize01Icon}
-        label="Resize"
-        disabled={disabled}
-        active={activeAction === "resize"}
-        onClick={() => onActionClick("resize")}
-      />
+        value={activeAction ? [activeAction] : []}
+      >
+        {ACTION_OPTIONS.map((option) => (
+          <ToggleGroupItem
+            key={option.value}
+            value={option.value}
+            onClick={() => onActionClick(option.value)}
+            className="!flex !h-auto !min-w-0 flex-1 flex-col items-center justify-center gap-1.5 rounded-xl border p-3 transition-colors border-border bg-background text-foreground hover:border-primary/50 hover:bg-muted aria-pressed:!border-primary aria-pressed:!bg-primary/10 aria-pressed:!text-primary disabled:cursor-not-allowed disabled:border-muted disabled:bg-muted/50 disabled:text-muted-foreground/50"
+          >
+            <HugeiconsIcon icon={option.icon} strokeWidth={1.5} className="size-6" />
+            <span className="text-xs font-medium">{option.label}</span>
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
     </div>
   );
 }

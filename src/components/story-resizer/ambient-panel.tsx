@@ -7,13 +7,13 @@ import type { AmbientBaseType } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { MAX_AMBIENT_BLUR_RADIUS, MIN_BLUR_RADIUS } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
 interface AmbientPanelProps {
   ambientBase: AmbientBaseType;
@@ -23,67 +23,6 @@ interface AmbientPanelProps {
   onAmbientCustomColorChange: (color: string | null) => void;
   onBlurRadiusChange: (radius: number) => void;
   onBack: () => void;
-}
-
-interface BaseColorOptionProps {
-  label: string;
-  selected: boolean;
-  onClick: () => void;
-  disabled?: boolean;
-  disabledReason?: string;
-  preview?: React.ReactNode;
-  icon?: React.ReactNode;
-}
-
-function BaseColorOption({
-  label,
-  selected,
-  onClick,
-  disabled,
-  disabledReason,
-  preview,
-  icon,
-}: BaseColorOptionProps) {
-  const button = (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        "relative flex flex-1 flex-col items-center gap-1.5 rounded-lg border-2 p-3 transition-colors",
-        disabled
-          ? "cursor-not-allowed border-muted bg-muted/50 text-muted-foreground/50"
-          : selected
-            ? "border-primary bg-primary/5"
-            : "border-muted hover:border-muted-foreground/50",
-      )}
-    >
-      {selected && !disabled && (
-        <HugeiconsIcon
-          icon={CheckmarkCircle02Icon}
-          strokeWidth={2}
-          className="absolute right-1.5 top-1.5 size-4 text-primary"
-        />
-      )}
-      <div className="flex size-6 items-center justify-center rounded">
-        {preview || icon}
-      </div>
-      <span className="text-xs font-medium">{label}</span>
-    </button>
-  );
-
-  if (disabled && disabledReason) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild className="flex-1">
-          <span>{button}</span>
-        </TooltipTrigger>
-        <TooltipContent>{disabledReason}</TooltipContent>
-      </Tooltip>
-    );
-  }
-
-  return button;
 }
 
 const isEyeDropperSupported =
@@ -111,6 +50,9 @@ export function AmbientPanel({
     }
   };
 
+  const itemClassName =
+    "relative !flex !h-auto !min-w-0 flex-1 flex-col items-center gap-1.5 rounded-lg border p-3 transition-colors border-muted bg-background text-foreground hover:border-muted-foreground/50 aria-pressed:!border-primary aria-pressed:!bg-primary/5 disabled:cursor-not-allowed disabled:border-muted disabled:bg-muted/50 disabled:text-muted-foreground/50";
+
   return (
     <div className="p-4">
       <div className="mb-3">
@@ -121,41 +63,90 @@ export function AmbientPanel({
         {/* Base Color */}
         <div className="space-y-2">
           <Label className="text-xs">Base Color</Label>
-          <div className="flex gap-2">
-            <BaseColorOption
-              label="Black"
-              selected={ambientBase === "black"}
-              onClick={() => onAmbientBaseChange("black")}
-              preview={<div className="size-5 rounded bg-black" />}
-            />
-            <BaseColorOption
-              label="White"
-              selected={ambientBase === "white"}
-              onClick={() => onAmbientBaseChange("white")}
-              preview={<div className="size-5 rounded border bg-white" />}
-            />
-            <BaseColorOption
-              label="Pick"
-              selected={ambientBase === "custom"}
-              onClick={handleEyedropperClick}
-              disabled={!isEyeDropperSupported}
-              disabledReason="Color picker not supported in this browser"
-              icon={
-                ambientCustomColor ? (
-                  <div
-                    className="size-5 rounded border"
-                    style={{ backgroundColor: ambientCustomColor }}
-                  />
-                ) : (
-                  <HugeiconsIcon
-                    icon={ColorPickerIcon}
-                    strokeWidth={1.5}
-                    className="size-4 text-muted-foreground"
-                  />
-                )
+          <ToggleGroup
+            spacing={2}
+            className="w-full"
+            value={[ambientBase]}
+            onValueChange={(newValue) => {
+              const selected = newValue[newValue.length - 1] as AmbientBaseType;
+              if (selected === "custom") {
+                handleEyedropperClick();
+              } else if (selected) {
+                onAmbientBaseChange(selected);
               }
-            />
-          </div>
+            }}
+          >
+            <ToggleGroupItem value="black" className={itemClassName}>
+              <HugeiconsIcon
+                icon={CheckmarkCircle02Icon}
+                strokeWidth={1.5}
+                className="absolute right-1.5 top-1.5 size-4 text-primary opacity-0 aria-pressed:opacity-100"
+              />
+              <div className="flex size-6 items-center justify-center rounded">
+                <div className="size-5 rounded bg-black" />
+              </div>
+              <span className="text-xs font-medium">Black</span>
+            </ToggleGroupItem>
+
+            <ToggleGroupItem value="white" className={itemClassName}>
+              <HugeiconsIcon
+                icon={CheckmarkCircle02Icon}
+                strokeWidth={1.5}
+                className="absolute right-1.5 top-1.5 size-4 text-primary opacity-0 aria-pressed:opacity-100"
+              />
+              <div className="flex size-6 items-center justify-center rounded">
+                <div className="size-5 rounded border bg-white" />
+              </div>
+              <span className="text-xs font-medium">White</span>
+            </ToggleGroupItem>
+
+            {isEyeDropperSupported ? (
+              <ToggleGroupItem value="custom" className={itemClassName}>
+                <HugeiconsIcon
+                  icon={CheckmarkCircle02Icon}
+                  strokeWidth={1.5}
+                  className="absolute right-1.5 top-1.5 size-4 text-primary opacity-0 aria-pressed:opacity-100"
+                />
+                <div className="flex size-6 items-center justify-center rounded">
+                  {ambientCustomColor ? (
+                    <div
+                      className="size-5 rounded border"
+                      style={{ backgroundColor: ambientCustomColor }}
+                    />
+                  ) : (
+                    <HugeiconsIcon
+                      icon={ColorPickerIcon}
+                      strokeWidth={1.5}
+                      className="size-4 text-muted-foreground"
+                    />
+                  )}
+                </div>
+                <span className="text-xs font-medium">Pick</span>
+              </ToggleGroupItem>
+            ) : (
+              <Tooltip>
+                <TooltipTrigger asChild className="flex-1">
+                  <span>
+                    <ToggleGroupItem
+                      value="custom"
+                      disabled
+                      className={itemClassName}
+                    >
+                      <div className="flex size-6 items-center justify-center rounded">
+                        <HugeiconsIcon
+                          icon={ColorPickerIcon}
+                          strokeWidth={1.5}
+                          className="size-4 text-muted-foreground"
+                        />
+                      </div>
+                      <span className="text-xs font-medium">Pick</span>
+                    </ToggleGroupItem>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>Color picker not supported in this browser</TooltipContent>
+              </Tooltip>
+            )}
+          </ToggleGroup>
         </div>
 
         {/* Blur Radius */}

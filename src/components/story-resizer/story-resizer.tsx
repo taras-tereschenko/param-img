@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { DownloadIcon } from "@hugeicons/core-free-icons";
+import { DownloadIcon, ScanImageIcon, Share08Icon } from "@hugeicons/core-free-icons";
 import { Spinner } from "@/components/ui/spinner";
 import { ImageCarousel } from "./image-carousel";
 import { ActionBar } from "./action-bar";
@@ -35,6 +35,16 @@ import {
 } from "@/lib/image-utils";
 import { processImageForStory } from "@/lib/canvas-utils";
 import { useInstallPrompt } from "@/components/pwa/pwa-provider";
+import {
+  getSharedFiles,
+  hasSharedContent,
+  clearSharedParam,
+} from "@/lib/share-target";
+import {
+  saveImages,
+  loadImages,
+  type StoredImage,
+} from "@/lib/image-storage";
 
 interface State {
   images: Array<ProcessedImage>;
@@ -161,6 +171,58 @@ export function StoryResizer() {
     });
   }, [navigate]);
 
+  // Track if initial load from storage is complete
+  const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
+
+  // Load persisted images from IndexedDB on mount
+  useEffect(() => {
+    async function loadPersistedImages() {
+      // Skip if we have shared content (those take priority)
+      if (hasSharedContent()) {
+        setIsInitialLoadComplete(true);
+        return;
+      }
+
+      try {
+        const storedImages = await loadImages();
+        if (storedImages.length > 0) {
+          const restoredImages: Array<ProcessedImage> = storedImages.map(
+            (stored: StoredImage) => ({
+              id: stored.id,
+              originalFile: stored.originalFile,
+              originalDataUrl: stored.originalDataUrl,
+              processedDataUrl: null,
+              backgroundColor: "blur" as BackgroundType,
+              customColor: null,
+              scale: DEFAULT_SCALE,
+              status: "pending" as const,
+            }),
+          );
+          dispatch({ type: "ADD_IMAGES", images: restoredImages });
+        }
+      } catch (error) {
+        console.error("Error loading persisted images:", error);
+      } finally {
+        setIsInitialLoadComplete(true);
+      }
+    }
+
+    loadPersistedImages();
+  }, []);
+
+  // Save images to IndexedDB whenever they change (after initial load)
+  useEffect(() => {
+    if (!isInitialLoadComplete) return;
+
+    const imagesToStore: StoredImage[] = images.map((img) => ({
+      id: img.id,
+      originalFile: img.originalFile,
+      originalDataUrl: img.originalDataUrl,
+    }));
+
+    saveImages(imagesToStore);
+  }, [images, isInitialLoadComplete]);
+
   // Close panel if no images (e.g., after page reload)
   useEffect(() => {
     if (images.length === 0 && activeSheet) {
@@ -168,8 +230,49 @@ export function StoryResizer() {
     }
   }, [images.length, activeSheet, closePanel]);
 
+  // Check for shared files from other apps (Web Share Target)
+  useEffect(() => {
+    async function loadSharedFiles() {
+      if (!hasSharedContent()) return;
+
+      try {
+        const files = await getSharedFiles();
+        if (files.length > 0) {
+          const newImages: Array<ProcessedImage> = await Promise.all(
+            files.map(async (file) => {
+              const dataUrl = await fileToDataUrl(file);
+              const preparedDataUrl = await prepareImage(dataUrl);
+
+              return {
+                id: generateImageId(),
+                originalFile: file,
+                originalDataUrl: preparedDataUrl,
+                processedDataUrl: null,
+                backgroundColor: "blur" as BackgroundType,
+                customColor: null,
+                scale: DEFAULT_SCALE,
+                status: "pending" as const,
+              };
+            }),
+          );
+
+          dispatch({ type: "ADD_IMAGES", images: newImages });
+          triggerShow();
+        }
+      } catch (error) {
+        console.error("Error loading shared files:", error);
+      } finally {
+        // Clear the shared param from URL
+        clearSharedParam();
+      }
+    }
+
+    loadSharedFiles();
+  }, [triggerShow]);
+
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
+  const [isSharing, setIsSharing] = useState(false);
 
   // Derived state for color sheet - only show custom as selected if it's actually custom
   const colorSheetSelection = useMemo(() => {
@@ -342,6 +445,65 @@ export function StoryResizer() {
     [],
   );
 
+  // Check if native share is supported
+  const canShare = typeof navigator !== "undefined" && !!navigator.share;
+
+  // Share handler using Web Share API
+  const handleShare = useCallback(async () => {
+    if (images.length === 0 || !canShare) return;
+
+    setIsSharing(true);
+
+    try {
+      // Process all images and convert to File objects
+      const files: File[] = [];
+      for (const image of images) {
+        const processedUrl = await processImageForStory(
+          image.originalDataUrl,
+          background,
+          customColor,
+          scale,
+          ambientBase,
+          ambientCustomColor,
+          activeBlurRadius,
+          borderRadius,
+        );
+
+        // Convert data URL to Blob then to File
+        const response = await fetch(processedUrl);
+        const blob = await response.blob();
+        const filename = createStoryFilename(image.originalFile.name);
+        const file = new File([blob], filename, { type: "image/jpeg" });
+        files.push(file);
+      }
+
+      // Check if file sharing is supported
+      if (navigator.canShare && navigator.canShare({ files })) {
+        await navigator.share({ files });
+      } else {
+        // Fallback: share without files (just notify user)
+        console.warn("File sharing not supported");
+      }
+    } catch (error) {
+      // User cancelled or share failed - ignore AbortError
+      if (error instanceof Error && error.name !== "AbortError") {
+        console.error("Failed to share images:", error);
+      }
+    } finally {
+      setIsSharing(false);
+    }
+  }, [
+    images,
+    canShare,
+    background,
+    customColor,
+    scale,
+    ambientBase,
+    ambientCustomColor,
+    activeBlurRadius,
+    borderRadius,
+  ]);
+
   const hasImages = images.length > 0;
 
   // Map background type to active action for visual feedback
@@ -357,39 +519,58 @@ export function StoryResizer() {
       <div className="flex h-full w-full flex-col bg-background shadow-none md:aspect-[1/2] md:w-auto md:overflow-hidden md:rounded-2xl md:shadow-xl">
         {/* Header */}
         <header className="flex items-center justify-between border-b px-4 py-3">
-          <h1 className="text-lg font-semibold">Param Img</h1>
+          <h1 className="flex items-center gap-2 text-lg font-semibold">
+            <HugeiconsIcon icon={ScanImageIcon} strokeWidth={1.5} className="size-6" />
+            Param Img
+          </h1>
           {hasImages && (
-            <Button
-              size="sm"
-              onClick={handleDownload}
-              disabled={isDownloading}
-              className="relative overflow-hidden"
-            >
-              {isDownloading && (
-                <Progress
-                  value={downloadProgress}
-                  className="absolute inset-0 flex-nowrap gap-0"
+            <div className="flex items-center gap-2">
+              {canShare && (
+                <Button
+                  size="icon-sm"
+                  variant="outline"
+                  onClick={handleShare}
+                  disabled={isSharing || isDownloading}
                 >
-                  <ProgressTrack className="absolute inset-0 h-full rounded-none bg-transparent">
-                    <ProgressIndicator className="bg-primary-foreground/20" />
-                  </ProgressTrack>
-                </Progress>
+                  {isSharing ? (
+                    <Spinner />
+                  ) : (
+                    <HugeiconsIcon icon={Share08Icon} strokeWidth={2} />
+                  )}
+                </Button>
               )}
-              {isDownloading ? (
-                <Spinner className="relative z-10" />
-              ) : (
-                <HugeiconsIcon
-                  icon={DownloadIcon}
-                  strokeWidth={2}
-                  data-icon="inline-start"
-                />
-              )}
-              <span className={isDownloading ? "relative z-10" : undefined}>
-                {isDownloading
-                  ? `${Math.round(downloadProgress)}%`
-                  : `Export images (${images.length})`}
-              </span>
-            </Button>
+              <Button
+                size="sm"
+                onClick={handleDownload}
+                disabled={isDownloading || isSharing}
+                className="relative overflow-hidden"
+              >
+                {isDownloading && (
+                  <Progress
+                    value={downloadProgress}
+                    className="absolute inset-0 flex-nowrap gap-0"
+                  >
+                    <ProgressTrack className="absolute inset-0 h-full rounded-none bg-transparent">
+                      <ProgressIndicator className="bg-primary-foreground/20" />
+                    </ProgressTrack>
+                  </Progress>
+                )}
+                {isDownloading ? (
+                  <Spinner className="relative z-10" />
+                ) : (
+                  <HugeiconsIcon
+                    icon={DownloadIcon}
+                    strokeWidth={2}
+                    data-icon="inline-start"
+                  />
+                )}
+                <span className={isDownloading ? "relative z-10" : undefined}>
+                  {isDownloading
+                    ? `${Math.round(downloadProgress)}%`
+                    : `Export (${images.length})`}
+                </span>
+              </Button>
+            </div>
           )}
         </header>
 

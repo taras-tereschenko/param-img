@@ -17,7 +17,7 @@ interface CanvasDimensions {
 
 /**
  * Calculate canvas dimensions based on original image size
- * The canvas will have 9:16 aspect ratio, sized to fit the original image
+ * The canvas will have 9:21 aspect ratio, sized to fit the original image
  */
 export function calculateCanvasDimensions(
   srcWidth: number,
@@ -29,11 +29,11 @@ export function calculateCanvasDimensions(
   let canvasHeight: number;
 
   if (srcRatio > STORY_ASPECT_RATIO) {
-    // Original is wider than 9:16 - use original width
+    // Original is wider than 9:21 - use original width
     canvasWidth = srcWidth;
     canvasHeight = Math.round(srcWidth / STORY_ASPECT_RATIO);
   } else {
-    // Original is taller than 9:16 - use original height
+    // Original is taller than 9:21 - use original height
     canvasHeight = srcHeight;
     canvasWidth = Math.round(srcHeight * STORY_ASPECT_RATIO);
   }

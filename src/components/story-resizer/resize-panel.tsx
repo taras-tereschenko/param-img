@@ -54,9 +54,9 @@ export function ResizePanel({
           <Label className="text-xs">Corner Radius</Label>
           <ToggleGroup
             type="single"
-            value={borderRadius}
+            value={String(borderRadius)}
             onValueChange={(value) => {
-              if (value) onBorderRadiusChange(value as BorderRadiusOption);
+              if (value) onBorderRadiusChange(Number(value) as BorderRadiusOption);
             }}
             className="w-full"
             variant="outline"
@@ -64,7 +64,7 @@ export function ResizePanel({
             {BORDER_RADIUS_OPTIONS.map((option) => (
               <ToggleGroupItem
                 key={option.value}
-                value={option.value}
+                value={String(option.value)}
                 className="h-10 flex-1"
               >
                 {option.label}
