@@ -124,7 +124,7 @@
   }
   html,
   body {
-    @apply font-sans overflow-hidden;
+    @apply font-sans overscroll-none;
   }
   body {
     @apply bg-background text-foreground;

@@ -152,7 +152,7 @@ export function ColorToggleGroup({
         ) : (
           <Tooltip>
             <TooltipTrigger asChild className="flex flex-1">
-              <div>
+              <div className="w-full">
                 <ToggleGroupItem
                   value="custom"
                   disabled
