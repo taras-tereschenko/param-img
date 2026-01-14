@@ -1,137 +1,37 @@
-import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useCallback, useEffect } from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { DownloadIcon, ScanImageIcon, Share08Icon } from "@hugeicons/core-free-icons";
-import { Spinner } from "@/components/ui/spinner";
+import {
+  DownloadIcon,
+  ScanImageIcon,
+  Share08Icon,
+} from "@hugeicons/core-free-icons";
 import { ImageCarousel } from "./image-carousel";
 import { ActionBar } from "./action-bar";
 import { BlurPanel } from "./blur-panel";
 import { AmbientPanel } from "./ambient-panel";
 import { ColorPanel } from "./color-panel";
 import { ResizePanel } from "./resize-panel";
-import type {
-  AmbientBaseType,
-  BackgroundType,
-  BorderRadiusOption,
-  ProcessedImage,
-} from "@/lib/types";
-import { Button } from "@/components/ui/button";
 import {
-  Progress,
-  ProgressTrack,
-  ProgressIndicator,
-} from "@/components/ui/progress";
-import {
-  DEFAULT_AMBIENT_BLUR_RADIUS,
-  DEFAULT_BLUR_RADIUS,
-  DEFAULT_BORDER_RADIUS,
-  DEFAULT_SCALE,
-} from "@/lib/types";
-import {
-  createStoryFilename,
-  fileToDataUrl,
-  generateImageId,
-  prepareImage,
-} from "@/lib/image-utils";
-import { processImageForStory } from "@/lib/canvas-utils";
+  prepareProcessedImages,
+  useImageExport,
+  useImagePersistence,
+  usePanelNavigation,
+  useSharedFiles,
+  useStoryResizerState,
+} from "./hooks";
 import { useInstallPrompt } from "@/components/pwa/pwa-provider";
 import {
-  getSharedFiles,
-  hasSharedContent,
-  clearSharedParam,
-} from "@/lib/share-target";
-import {
-  saveImages,
-  loadImages,
-  type StoredImage,
-} from "@/lib/image-storage";
-
-interface State {
-  images: Array<ProcessedImage>;
-  background: BackgroundType;
-  customColor: string | null;
-  ambientBase: AmbientBaseType;
-  ambientCustomColor: string | null;
-  blurRadius: number;
-  ambientBlurRadius: number;
-  scale: number;
-  borderRadius: BorderRadiusOption;
-}
-
-type Action =
-  | { type: "ADD_IMAGES"; images: Array<ProcessedImage> }
-  | { type: "REMOVE_IMAGE"; id: string }
-  | { type: "SET_BACKGROUND"; background: BackgroundType }
-  | { type: "SET_CUSTOM_COLOR"; color: string | null }
-  | { type: "SET_AMBIENT_BASE"; ambientBase: AmbientBaseType }
-  | { type: "SET_AMBIENT_CUSTOM_COLOR"; color: string | null }
-  | { type: "SET_BLUR_RADIUS"; blurRadius: number }
-  | { type: "SET_AMBIENT_BLUR_RADIUS"; ambientBlurRadius: number }
-  | { type: "SET_SCALE"; scale: number }
-  | { type: "SET_BORDER_RADIUS"; borderRadius: BorderRadiusOption }
-  | { type: "CLEAR_ALL" };
-
-function reducer(state: State, action: Action): State {
-  switch (action.type) {
-    case "ADD_IMAGES":
-      return { ...state, images: [...state.images, ...action.images] };
-    case "REMOVE_IMAGE":
-      return {
-        ...state,
-        images: state.images.filter((img) => img.id !== action.id),
-      };
-    case "SET_BACKGROUND":
-      return { ...state, background: action.background };
-    case "SET_CUSTOM_COLOR":
-      return { ...state, customColor: action.color };
-    case "SET_AMBIENT_BASE":
-      return { ...state, ambientBase: action.ambientBase };
-    case "SET_AMBIENT_CUSTOM_COLOR":
-      return { ...state, ambientCustomColor: action.color };
-    case "SET_BLUR_RADIUS":
-      return { ...state, blurRadius: action.blurRadius };
-    case "SET_AMBIENT_BLUR_RADIUS":
-      return { ...state, ambientBlurRadius: action.ambientBlurRadius };
-    case "SET_SCALE":
-      return { ...state, scale: action.scale };
-    case "SET_BORDER_RADIUS":
-      return { ...state, borderRadius: action.borderRadius };
-    case "CLEAR_ALL":
-      return {
-        ...state,
-        images: [],
-        customColor: null,
-        ambientCustomColor: null,
-      };
-    default:
-      return state;
-  }
-}
-
-const initialState: State = {
-  images: [],
-  background: "blur",
-  customColor: null,
-  ambientBase: "black",
-  ambientCustomColor: null,
-  blurRadius: DEFAULT_BLUR_RADIUS,
-  ambientBlurRadius: DEFAULT_AMBIENT_BLUR_RADIUS,
-  scale: DEFAULT_SCALE,
-  borderRadius: DEFAULT_BORDER_RADIUS,
-};
-
-function downloadDataUrl(dataUrl: string, filename: string): void {
-  const link = document.createElement("a");
-  link.href = dataUrl;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-}
+  Progress,
+  ProgressIndicator,
+  ProgressTrack,
+} from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 
 export function StoryResizer() {
-  const [state, dispatch] = useReducer(reducer, initialState);
   const { triggerShow } = useInstallPrompt();
+  const { activeSheet, openPanel, closePanel } = usePanelNavigation();
+
   const {
     images,
     background,
@@ -142,376 +42,135 @@ export function StoryResizer() {
     ambientBlurRadius,
     scale,
     borderRadius,
-  } = state;
+    activeBlurRadius,
+    hasImages,
+    activeAction,
+    colorSheetSelection,
+    addImages,
+    removeImage,
+    setBackground,
+    setCustomColor,
+    setAmbientBase,
+    setAmbientCustomColor,
+    setBlurRadius,
+    setAmbientBlurRadius,
+    setScale,
+    setBorderRadius,
+  } = useStoryResizerState();
 
-  // Get the active blur radius based on current background mode
-  const activeBlurRadius =
-    background === "ambient" ? ambientBlurRadius : blurRadius;
+  // Persistence and shared files
+  useImagePersistence({ images, onImagesLoaded: addImages });
+  useSharedFiles({
+    onFilesReceived: addImages,
+    onShowInstallPrompt: triggerShow,
+  });
 
-  // URL-based panel state for browser back button support
-  const navigate = useNavigate();
-  const { panel: activeSheet } = useSearch({ from: "/" });
+  // Export functionality
+  const {
+    isDownloading,
+    downloadProgress,
+    isSharing,
+    canShare,
+    handleDownload,
+    handleDownloadImage,
+    handleShare,
+  } = useImageExport(images, {
+    background,
+    customColor,
+    scale,
+    ambientBase,
+    ambientCustomColor,
+    activeBlurRadius,
+    borderRadius,
+  });
 
-  const openPanel = useCallback(
-    (panel: "blur" | "ambient" | "color" | "resize") => {
-      navigate({
-        to: "/",
-        search: { panel },
-        resetScroll: false,
-      });
-    },
-    [navigate],
-  );
-
-  const closePanel = useCallback(() => {
-    navigate({
-      to: "/",
-      search: {},
-      resetScroll: false,
-    });
-  }, [navigate]);
-
-  // Track if initial load from storage is complete
-  const [isInitialLoadComplete, setIsInitialLoadComplete] = useState(false);
-
-  // Load persisted images from IndexedDB on mount
-  useEffect(() => {
-    async function loadPersistedImages() {
-      // Skip if we have shared content (those take priority)
-      if (hasSharedContent()) {
-        setIsInitialLoadComplete(true);
-        return;
-      }
-
-      try {
-        const storedImages = await loadImages();
-        if (storedImages.length > 0) {
-          const restoredImages: Array<ProcessedImage> = storedImages.map(
-            (stored: StoredImage) => ({
-              id: stored.id,
-              originalFile: stored.originalFile,
-              originalDataUrl: stored.originalDataUrl,
-              processedDataUrl: null,
-              backgroundColor: "blur" as BackgroundType,
-              customColor: null,
-              scale: DEFAULT_SCALE,
-              status: "pending" as const,
-            }),
-          );
-          dispatch({ type: "ADD_IMAGES", images: restoredImages });
-        }
-      } catch (error) {
-        console.error("Error loading persisted images:", error);
-      } finally {
-        setIsInitialLoadComplete(true);
-      }
-    }
-
-    loadPersistedImages();
-  }, []);
-
-  // Save images to IndexedDB whenever they change (after initial load)
-  useEffect(() => {
-    if (!isInitialLoadComplete) return;
-
-    const imagesToStore: StoredImage[] = images.map((img) => ({
-      id: img.id,
-      originalFile: img.originalFile,
-      originalDataUrl: img.originalDataUrl,
-    }));
-
-    saveImages(imagesToStore);
-  }, [images, isInitialLoadComplete]);
-
-  // Close panel if no images (e.g., after page reload)
+  // Close panel if no images
   useEffect(() => {
     if (images.length === 0 && activeSheet) {
       closePanel();
     }
   }, [images.length, activeSheet, closePanel]);
 
-  // Check for shared files from other apps (Web Share Target)
-  useEffect(() => {
-    async function loadSharedFiles() {
-      if (!hasSharedContent()) return;
-
-      try {
-        const files = await getSharedFiles();
-        if (files.length > 0) {
-          const newImages: Array<ProcessedImage> = await Promise.all(
-            files.map(async (file) => {
-              const dataUrl = await fileToDataUrl(file);
-              const preparedDataUrl = await prepareImage(dataUrl);
-
-              return {
-                id: generateImageId(),
-                originalFile: file,
-                originalDataUrl: preparedDataUrl,
-                processedDataUrl: null,
-                backgroundColor: "blur" as BackgroundType,
-                customColor: null,
-                scale: DEFAULT_SCALE,
-                status: "pending" as const,
-              };
-            }),
-          );
-
-          dispatch({ type: "ADD_IMAGES", images: newImages });
-          triggerShow();
-        }
-      } catch (error) {
-        console.error("Error loading shared files:", error);
-      } finally {
-        // Clear the shared param from URL
-        clearSharedParam();
-      }
-    }
-
-    loadSharedFiles();
-  }, [triggerShow]);
-
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [downloadProgress, setDownloadProgress] = useState(0);
-  const [isSharing, setIsSharing] = useState(false);
-
-  // Derived state for color sheet - only show custom as selected if it's actually custom
-  const colorSheetSelection = useMemo(() => {
-    if (background === "black") return "black";
-    if (background === "white") return "white";
-    if (background === "custom") return "custom";
-    return "black"; // Default to black for blur/ambient modes
-  }, [background]);
-
+  // File handling
   const handleFilesAdded = useCallback(
     async (files: Array<File>) => {
-      const newImages: Array<ProcessedImage> = await Promise.all(
-        files.map(async (file) => {
-          const dataUrl = await fileToDataUrl(file);
-          const preparedDataUrl = await prepareImage(dataUrl);
-
-          return {
-            id: generateImageId(),
-            originalFile: file,
-            originalDataUrl: preparedDataUrl,
-            processedDataUrl: null,
-            backgroundColor: "blur" as BackgroundType,
-            customColor: null,
-            scale: DEFAULT_SCALE,
-            status: "pending" as const,
-          };
-        }),
-      );
-
-      dispatch({ type: "ADD_IMAGES", images: newImages });
-
-      // Trigger install prompt after first image is added
+      const newImages = await prepareProcessedImages(files);
+      addImages(newImages);
       triggerShow();
     },
-    [triggerShow],
+    [addImages, triggerShow],
   );
 
-  const handleRemoveImage = useCallback((id: string) => {
-    dispatch({ type: "REMOVE_IMAGE", id });
-  }, []);
-
+  // Action bar click handler
   const handleActionClick = useCallback(
     (action: "blur" | "ambient" | "color" | "resize") => {
       openPanel(action);
-      // Set the background type when opening the panel
       if (action === "blur") {
-        dispatch({ type: "SET_BACKGROUND", background: "blur" });
+        setBackground("blur");
       } else if (action === "ambient") {
-        dispatch({ type: "SET_BACKGROUND", background: "ambient" });
+        setBackground("ambient");
       } else if (action === "color") {
-        // Default to black when opening color panel (unless custom color is already set)
         if (
           background !== "black" &&
           background !== "white" &&
           background !== "custom"
         ) {
-          dispatch({ type: "SET_BACKGROUND", background: "black" });
+          setBackground("black");
         }
       }
     },
-    [background, openPanel],
+    [background, openPanel, setBackground],
+  );
+
+  // Blur panel handlers
+  const handleBlurPanelRadiusChange = useCallback(
+    (radius: number) => {
+      setBlurRadius(radius);
+      setBackground("blur");
+    },
+    [setBlurRadius, setBackground],
   );
 
   // Ambient handlers
-  const handleAmbientBaseChange = useCallback((base: AmbientBaseType) => {
-    dispatch({ type: "SET_AMBIENT_BASE", ambientBase: base });
-    dispatch({ type: "SET_BACKGROUND", background: "ambient" });
-  }, []);
+  const handleAmbientBaseChange = useCallback(
+    (base: "black" | "white" | "custom") => {
+      setAmbientBase(base);
+      setBackground("ambient");
+    },
+    [setAmbientBase, setBackground],
+  );
 
-  const handleAmbientCustomColorChange = useCallback((color: string | null) => {
-    dispatch({ type: "SET_AMBIENT_CUSTOM_COLOR", color });
-    dispatch({ type: "SET_BACKGROUND", background: "ambient" });
-  }, []);
+  const handleAmbientCustomColorChange = useCallback(
+    (color: string | null) => {
+      setAmbientCustomColor(color);
+      setBackground("ambient");
+    },
+    [setAmbientCustomColor, setBackground],
+  );
 
-  const handleBlurPanelRadiusChange = useCallback((radius: number) => {
-    dispatch({ type: "SET_BLUR_RADIUS", blurRadius: radius });
-    dispatch({ type: "SET_BACKGROUND", background: "blur" });
-  }, []);
-
-  const handleAmbientBlurRadiusChange = useCallback((radius: number) => {
-    dispatch({ type: "SET_AMBIENT_BLUR_RADIUS", ambientBlurRadius: radius });
-    dispatch({ type: "SET_BACKGROUND", background: "ambient" });
-  }, []);
+  const handleAmbientBlurRadiusChange = useCallback(
+    (radius: number) => {
+      setAmbientBlurRadius(radius);
+      setBackground("ambient");
+    },
+    [setAmbientBlurRadius, setBackground],
+  );
 
   // Color handlers
   const handleColorSelect = useCallback(
     (color: "black" | "white" | "custom") => {
-      if (color === "black") {
-        dispatch({ type: "SET_BACKGROUND", background: "black" });
-      } else if (color === "white") {
-        dispatch({ type: "SET_BACKGROUND", background: "white" });
-      } else {
-        dispatch({ type: "SET_BACKGROUND", background: "custom" });
-      }
+      setBackground(color);
     },
-    [],
+    [setBackground],
   );
 
-  const handleCustomColorChange = useCallback((color: string) => {
-    dispatch({ type: "SET_CUSTOM_COLOR", color });
-    dispatch({ type: "SET_BACKGROUND", background: "custom" });
-  }, []);
-
-  // Scale handlers
-  const handleScaleChange = useCallback((newScale: number) => {
-    dispatch({ type: "SET_SCALE", scale: newScale });
-  }, []);
-
-  // Border radius handler
-  const handleBorderRadiusChange = useCallback(
-    (newBorderRadius: BorderRadiusOption) => {
-      dispatch({ type: "SET_BORDER_RADIUS", borderRadius: newBorderRadius });
+  const handleCustomColorChange = useCallback(
+    (color: string) => {
+      setCustomColor(color);
+      setBackground("custom");
     },
-    [],
+    [setCustomColor, setBackground],
   );
-
-  // Download handler
-  const handleDownload = useCallback(async () => {
-    if (images.length === 0) return;
-
-    setIsDownloading(true);
-    setDownloadProgress(0);
-
-    try {
-      for (let i = 0; i < images.length; i++) {
-        const image = images[i];
-        const processedUrl = await processImageForStory(
-          image.originalDataUrl,
-          background,
-          customColor,
-          scale,
-          ambientBase,
-          ambientCustomColor,
-          activeBlurRadius,
-          borderRadius,
-        );
-
-        const filename = createStoryFilename(image.originalFile.name);
-        downloadDataUrl(processedUrl, filename);
-
-        setDownloadProgress(((i + 1) / images.length) * 100);
-
-        if (i < images.length - 1) {
-          await new Promise((resolve) => setTimeout(resolve, 200));
-        }
-      }
-    } catch (error) {
-      console.error("Failed to download images:", error);
-    } finally {
-      setIsDownloading(false);
-      setDownloadProgress(0);
-    }
-  }, [
-    images,
-    background,
-    customColor,
-    scale,
-    ambientBase,
-    ambientCustomColor,
-    activeBlurRadius,
-    borderRadius,
-  ]);
-
-  // Single image download handler
-  const handleDownloadImage = useCallback(
-    (processedUrl: string, originalFilename: string) => {
-      const filename = createStoryFilename(originalFilename);
-      downloadDataUrl(processedUrl, filename);
-    },
-    [],
-  );
-
-  // Check if native share is supported
-  const canShare = typeof navigator !== "undefined" && !!navigator.share;
-
-  // Share handler using Web Share API
-  const handleShare = useCallback(async () => {
-    if (images.length === 0 || !canShare) return;
-
-    setIsSharing(true);
-
-    try {
-      // Process all images and convert to File objects
-      const files: File[] = [];
-      for (const image of images) {
-        const processedUrl = await processImageForStory(
-          image.originalDataUrl,
-          background,
-          customColor,
-          scale,
-          ambientBase,
-          ambientCustomColor,
-          activeBlurRadius,
-          borderRadius,
-        );
-
-        // Convert data URL to Blob then to File
-        const response = await fetch(processedUrl);
-        const blob = await response.blob();
-        const filename = createStoryFilename(image.originalFile.name);
-        const file = new File([blob], filename, { type: "image/jpeg" });
-        files.push(file);
-      }
-
-      // Check if file sharing is supported
-      if (navigator.canShare && navigator.canShare({ files })) {
-        await navigator.share({ files });
-      } else {
-        // Fallback: share without files (just notify user)
-        console.warn("File sharing not supported");
-      }
-    } catch (error) {
-      // User cancelled or share failed - ignore AbortError
-      if (error instanceof Error && error.name !== "AbortError") {
-        console.error("Failed to share images:", error);
-      }
-    } finally {
-      setIsSharing(false);
-    }
-  }, [
-    images,
-    canShare,
-    background,
-    customColor,
-    scale,
-    ambientBase,
-    ambientCustomColor,
-    activeBlurRadius,
-    borderRadius,
-  ]);
-
-  const hasImages = images.length > 0;
-
-  // Map background type to active action for visual feedback
-  const activeAction = useMemo(() => {
-    if (background === "blur") return "blur";
-    if (background === "ambient") return "ambient";
-    return "color"; // black, white, or custom
-  }, [background]);
 
   return (
     <div className="flex h-[100dvh] flex-col items-center justify-center bg-muted/30 md:p-8">
@@ -520,7 +179,11 @@ export function StoryResizer() {
         {/* Header */}
         <header className="flex items-center justify-between border-b px-4 py-3">
           <h1 className="flex items-center gap-2 text-lg font-semibold">
-            <HugeiconsIcon icon={ScanImageIcon} strokeWidth={1.5} className="size-6" />
+            <HugeiconsIcon
+              icon={ScanImageIcon}
+              strokeWidth={2}
+              className="size-5"
+            />
             Param Img
           </h1>
           {hasImages && (
@@ -586,7 +249,7 @@ export function StoryResizer() {
             scale={scale}
             borderRadius={borderRadius}
             onFilesAdded={handleFilesAdded}
-            onRemoveImage={handleRemoveImage}
+            onRemoveImage={removeImage}
             onDownloadImage={handleDownloadImage}
           />
         </main>
@@ -626,9 +289,9 @@ export function StoryResizer() {
           ) : (
             <ResizePanel
               scale={scale}
-              onScaleChange={handleScaleChange}
+              onScaleChange={setScale}
               borderRadius={borderRadius}
-              onBorderRadiusChange={handleBorderRadiusChange}
+              onBorderRadiusChange={setBorderRadius}
               onBack={closePanel}
             />
           )}

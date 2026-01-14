@@ -5,11 +5,15 @@
  * canvas operations like blur filters and JPEG encoding.
  */
 
+import { DEFAULT_BLUR_RADIUS } from "./types";
 import {
-  BORDER_RADIUS_OPTIONS,
-  DEFAULT_BLUR_RADIUS,
-  STORY_ASPECT_RATIO,
-} from "./types";
+  calculateCanvasDimensions,
+  drawAmbientBackground,
+  drawBlurredBackground,
+  drawRoundedRect,
+  drawSolidBackground,
+  getBorderRadiusPixels,
+} from "./canvas-core";
 import type {
   AmbientBaseType,
   BackgroundType,
@@ -39,135 +43,6 @@ export interface ProcessError {
   error: string;
 }
 
-interface CanvasDimensions {
-  width: number;
-  height: number;
-}
-
-/**
- * Calculate canvas dimensions based on original image size
- * The canvas will have 9:21 aspect ratio, sized to fit the original image
- */
-function calculateCanvasDimensions(
-  srcWidth: number,
-  srcHeight: number,
-): CanvasDimensions {
-  const srcRatio = srcWidth / srcHeight;
-
-  let canvasWidth: number;
-  let canvasHeight: number;
-
-  if (srcRatio > STORY_ASPECT_RATIO) {
-    canvasWidth = srcWidth;
-    canvasHeight = Math.round(srcWidth / STORY_ASPECT_RATIO);
-  } else {
-    canvasHeight = srcHeight;
-    canvasWidth = Math.round(srcHeight * STORY_ASPECT_RATIO);
-  }
-
-  return { width: canvasWidth, height: canvasHeight };
-}
-
-/**
- * Draw a rounded rectangle path
- */
-function drawRoundedRect(
-  ctx: OffscreenCanvasRenderingContext2D,
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  radius: number,
-): void {
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + width - radius, y);
-  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-  ctx.lineTo(x + width, y + height - radius);
-  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-  ctx.lineTo(x + radius, y + height);
-  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
-  ctx.closePath();
-}
-
-/**
- * Calculate actual border radius in pixels from option
- */
-function getBorderRadiusPixels(
-  option: BorderRadiusOption,
-  imageWidth: number,
-  imageHeight: number,
-): number {
-  const radiusOption = BORDER_RADIUS_OPTIONS.find(
-    (opt) => opt.value === option,
-  );
-  if (!radiusOption || radiusOption.percent === 0) return 0;
-
-  const shorterSide = Math.min(imageWidth, imageHeight);
-  return Math.round(shorterSide * (radiusOption.percent / 100));
-}
-
-/**
- * Draw a blurred background using the original image
- */
-function drawBlurredBackground(
-  ctx: OffscreenCanvasRenderingContext2D,
-  canvas: OffscreenCanvas,
-  img: ImageBitmap,
-  blurRadius: number = DEFAULT_BLUR_RADIUS,
-): void {
-  const scale = Math.max(canvas.width / img.width, canvas.height / img.height);
-  const scaledWidth = img.width * scale;
-  const scaledHeight = img.height * scale;
-  const x = (canvas.width - scaledWidth) / 2;
-  const y = (canvas.height - scaledHeight) / 2;
-
-  ctx.filter = `blur(${blurRadius}px)`;
-  ctx.drawImage(img, x, y, scaledWidth, scaledHeight);
-  ctx.filter = "none";
-
-  // Add slight darkening overlay for better contrast
-  ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-}
-
-/**
- * Draw a solid color background
- */
-function drawSolidBackground(
-  ctx: OffscreenCanvasRenderingContext2D,
-  canvas: OffscreenCanvas,
-  color: string,
-): void {
-  ctx.fillStyle = color;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-}
-
-/**
- * Draw ambient glow effect (YouTube-style ambient mode)
- */
-function drawAmbientBackground(
-  ctx: OffscreenCanvasRenderingContext2D,
-  canvas: OffscreenCanvas,
-  img: ImageBitmap,
-  baseColor: string,
-  imageX: number,
-  imageY: number,
-  imageWidth: number,
-  imageHeight: number,
-  blurRadius: number = DEFAULT_BLUR_RADIUS,
-): void {
-  ctx.fillStyle = baseColor;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  ctx.save();
-  ctx.filter = `blur(${blurRadius}px)`;
-  ctx.drawImage(img, imageX, imageY, imageWidth, imageHeight);
-  ctx.restore();
-}
-
 /**
  * Draw the background based on the selected type
  */
@@ -181,7 +56,12 @@ function drawBackground(
 ): void {
   switch (backgroundType) {
     case "blur":
-      drawBlurredBackground(ctx, canvas, img, blurRadius ?? DEFAULT_BLUR_RADIUS);
+      drawBlurredBackground(
+        ctx,
+        canvas,
+        img,
+        blurRadius ?? DEFAULT_BLUR_RADIUS,
+      );
       break;
     case "black":
       drawSolidBackground(ctx, canvas, "#000000");
@@ -247,9 +127,10 @@ async function processImageForStory(
   const drawHeight = baseHeight * scale;
 
   // Scale blur radius proportionally when downscaling
-  const adjustedBlurRadius = sizeScale < 1 && blurRadius
-    ? Math.round(blurRadius * sizeScale)
-    : blurRadius;
+  const adjustedBlurRadius =
+    sizeScale < 1 && blurRadius
+      ? Math.round(blurRadius * sizeScale)
+      : blurRadius;
   const x = (canvasWidth - drawWidth) / 2;
   const y = (canvasHeight - drawHeight) / 2;
 
@@ -273,7 +154,14 @@ async function processImageForStory(
       adjustedBlurRadius ?? DEFAULT_BLUR_RADIUS,
     );
   } else {
-    drawBackground(ctx, canvas, img, backgroundType, customColor, adjustedBlurRadius);
+    drawBackground(
+      ctx,
+      canvas,
+      img,
+      backgroundType,
+      customColor,
+      adjustedBlurRadius,
+    );
   }
 
   // Draw the original image centered and scaled with optional rounded corners

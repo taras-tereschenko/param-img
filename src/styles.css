@@ -130,7 +130,15 @@
   }
 }
 
-/* Sonner toast button spacing fix */
-[data-sonner-toast] [data-button] {
+/* Sonner toast button styling - override Sonner's high-specificity selectors */
+[data-sonner-toast][data-styled="true"] [data-button].cn-toast-action {
+  @apply h-8 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground;
+}
+
+[data-sonner-toast][data-styled="true"] [data-button].cn-toast-cancel {
+  @apply h-8 rounded-md bg-secondary px-3 text-sm font-medium text-secondary-foreground;
+}
+
+[data-sonner-toast][data-styled="true"] [data-button] + [data-button] {
   @apply ml-2;
 }

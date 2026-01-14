@@ -1,5 +1,5 @@
 /// <reference lib="webworker" />
-import { precacheAndRoute, cleanupOutdatedCaches } from "workbox-precaching";
+import { cleanupOutdatedCaches, precacheAndRoute } from "workbox-precaching";
 
 declare let self: ServiceWorkerGlobalScope;
 
@@ -25,7 +25,7 @@ async function openDB(): Promise<IDBDatabase> {
   });
 }
 
-async function storeSharedFiles(files: File[]): Promise<void> {
+async function storeSharedFiles(files: Array<File>): Promise<void> {
   const db = await openDB();
   const tx = db.transaction(STORE_NAME, "readwrite");
   const store = tx.objectStore(STORE_NAME);
@@ -57,7 +57,7 @@ self.addEventListener("fetch", (event) => {
 async function handleShareTarget(request: Request): Promise<Response> {
   try {
     const formData = await request.formData();
-    const files: File[] = [];
+    const files: Array<File> = [];
 
     // Get all shared images
     const images = formData.getAll("images");

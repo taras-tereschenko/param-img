@@ -1,15 +1,22 @@
 import {
   createContext,
-  useContext,
-  useState,
-  useEffect,
   useCallback,
-  type ReactNode,
+  useContext,
+  useEffect,
+  useState,
 } from "react";
+import type { ReactNode } from "react";
 
+// BeforeInstallPrompt API type declaration (not yet in standard TypeScript lib)
 interface BeforeInstallPromptEvent extends Event {
-  prompt(): Promise<void>;
+  prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
+}
+
+declare global {
+  interface WindowEventMap {
+    beforeinstallprompt: BeforeInstallPromptEvent;
+  }
 }
 
 interface InstallPromptContextValue {
@@ -29,7 +36,7 @@ let capturedPromptEvent: BeforeInstallPromptEvent | null = null;
 if (typeof window !== "undefined") {
   window.addEventListener("beforeinstallprompt", (e) => {
     e.preventDefault();
-    capturedPromptEvent = e as BeforeInstallPromptEvent;
+    capturedPromptEvent = e;
   });
 }
 
@@ -56,10 +63,10 @@ export function PWAProvider({ children }: { children: ReactNode }) {
     }
 
     // Continue listening for future events
-    const handler = (e: Event) => {
+    const handler = (e: BeforeInstallPromptEvent) => {
       e.preventDefault();
-      capturedPromptEvent = e as BeforeInstallPromptEvent;
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      capturedPromptEvent = e;
+      setDeferredPrompt(e);
     };
     window.addEventListener("beforeinstallprompt", handler);
     return () => window.removeEventListener("beforeinstallprompt", handler);

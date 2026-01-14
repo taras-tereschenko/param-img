@@ -2,4 +2,8 @@
 
 import { tanstackConfig } from "@tanstack/eslint-config";
 
-export default [...tanstackConfig];
+export default [
+  // ESLint flat config doesn't automatically respect .gitignore
+  { ignores: [".output/**", ".wrangler/**"] },
+  ...tanstackConfig,
+];

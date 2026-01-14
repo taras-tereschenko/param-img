@@ -2,39 +2,30 @@
  * Share Target utilities for retrieving files shared from other apps
  */
 
-const DB_NAME = "param-img-share";
-const STORE_NAME = "shared-files";
+import { openDatabase } from "./indexed-db";
 
-async function openDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 1);
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result);
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME);
-      }
-    };
-  });
-}
+const DB_CONFIG = {
+  name: "param-img-share",
+  version: 1,
+  storeName: "shared-files",
+};
 
 /**
  * Retrieve and clear shared files from IndexedDB
  * Returns empty array if no files or if IndexedDB is not available
  */
-export async function getSharedFiles(): Promise<File[]> {
+export async function getSharedFiles(): Promise<Array<File>> {
   if (typeof indexedDB === "undefined") {
     return [];
   }
 
   try {
-    const db = await openDB();
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    const store = tx.objectStore(STORE_NAME);
+    const db = await openDatabase(DB_CONFIG);
+    const tx = db.transaction(DB_CONFIG.storeName, "readwrite");
+    const store = tx.objectStore(DB_CONFIG.storeName);
 
     // Get all files
-    const files: File[] = [];
+    const files: Array<File> = [];
     const request = store.openCursor();
 
     await new Promise<void>((resolve, reject) => {

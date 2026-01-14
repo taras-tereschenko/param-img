@@ -4,7 +4,7 @@ import type {
   BackgroundType,
   BorderRadiusOption,
 } from "./types";
-import type { ProcessResponse, ProcessError } from "./canvas-worker";
+import type { ProcessError, ProcessResponse } from "./canvas-worker";
 
 export interface ProcessParams {
   imageDataUrl: string;
@@ -27,7 +27,7 @@ interface PendingRequest {
 }
 
 let globalWorker: Worker | null = null;
-let globalPending: Map<string, PendingRequest> = new Map();
+const globalPending: Map<string, PendingRequest> = new Map();
 let instanceCount = 0;
 
 function generateId(): string {
@@ -39,12 +39,13 @@ function generateId(): string {
  */
 function initWorker(): Worker {
   if (!globalWorker) {
-    globalWorker = new Worker(
-      new URL("./canvas-worker.ts", import.meta.url),
-      { type: "module" },
-    );
+    globalWorker = new Worker(new URL("./canvas-worker.ts", import.meta.url), {
+      type: "module",
+    });
 
-    globalWorker.onmessage = (e: MessageEvent<ProcessResponse | ProcessError>) => {
+    globalWorker.onmessage = (
+      e: MessageEvent<ProcessResponse | ProcessError>,
+    ) => {
       const { id } = e.data;
       const pending = globalPending.get(id);
 

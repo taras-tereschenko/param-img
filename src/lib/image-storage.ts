@@ -2,9 +2,14 @@
  * Image Storage utilities for persisting images between page reloads
  */
 
-const DB_NAME = "param-img-storage";
-const STORE_NAME = "images";
-const DB_VERSION = 1;
+import { openDatabase } from "./indexed-db";
+
+const DB_CONFIG = {
+  name: "param-img-storage",
+  version: 1,
+  storeName: "images",
+  keyPath: "id",
+};
 
 export interface StoredImage {
   id: string;
@@ -12,30 +17,16 @@ export interface StoredImage {
   originalDataUrl: string;
 }
 
-async function openDB(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result);
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: "id" });
-      }
-    };
-  });
-}
-
 /**
  * Save images to IndexedDB
  */
-export async function saveImages(images: StoredImage[]): Promise<void> {
+export async function saveImages(images: Array<StoredImage>): Promise<void> {
   if (typeof indexedDB === "undefined") return;
 
   try {
-    const db = await openDB();
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    const store = tx.objectStore(STORE_NAME);
+    const db = await openDatabase(DB_CONFIG);
+    const tx = db.transaction(DB_CONFIG.storeName, "readwrite");
+    const store = tx.objectStore(DB_CONFIG.storeName);
 
     // Clear existing and add new
     store.clear();
@@ -55,42 +46,21 @@ export async function saveImages(images: StoredImage[]): Promise<void> {
 /**
  * Load images from IndexedDB
  */
-export async function loadImages(): Promise<StoredImage[]> {
+export async function loadImages(): Promise<Array<StoredImage>> {
   if (typeof indexedDB === "undefined") return [];
 
   try {
-    const db = await openDB();
-    const tx = db.transaction(STORE_NAME, "readonly");
-    const store = tx.objectStore(STORE_NAME);
+    const db = await openDatabase(DB_CONFIG);
+    const tx = db.transaction(DB_CONFIG.storeName, "readonly");
+    const store = tx.objectStore(DB_CONFIG.storeName);
     const request = store.getAll();
 
     return new Promise((resolve, reject) => {
       request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result || []);
+      request.onsuccess = () => resolve(request.result);
     });
   } catch (error) {
     console.error("Error loading images:", error);
     return [];
-  }
-}
-
-/**
- * Clear all stored images
- */
-export async function clearImages(): Promise<void> {
-  if (typeof indexedDB === "undefined") return;
-
-  try {
-    const db = await openDB();
-    const tx = db.transaction(STORE_NAME, "readwrite");
-    const store = tx.objectStore(STORE_NAME);
-    store.clear();
-
-    return new Promise((resolve, reject) => {
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  } catch (error) {
-    console.error("Error clearing images:", error);
   }
 }

@@ -1,4 +1,4 @@
-import { ACCEPTED_IMAGE_TYPES, MAX_SOURCE_DIMENSION } from "./types";
+import { MAX_SOURCE_DIMENSION } from "./types";
 
 /**
  * Convert a File to a data URL string
@@ -22,22 +22,6 @@ export function loadImage(src: string): Promise<HTMLImageElement> {
     img.onerror = () => reject(new Error("Failed to load image"));
     img.src = src;
   });
-}
-
-/**
- * Validate if a file is an accepted image type
- */
-export function isValidImageType(file: File): boolean {
-  return ACCEPTED_IMAGE_TYPES.includes(
-    file.type as (typeof ACCEPTED_IMAGE_TYPES)[number],
-  );
-}
-
-/**
- * Filter an array of files to only include valid images
- */
-export function filterValidImages(files: Array<File>): Array<File> {
-  return files.filter(isValidImageType);
 }
 
 /**
@@ -70,14 +54,6 @@ export async function prepareImage(dataUrl: string): Promise<string> {
 
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
   return canvas.toDataURL("image/jpeg", 0.9);
-}
-
-/**
- * Get the file extension from a filename
- */
-export function getFileExtension(filename: string): string {
-  const parts = filename.split(".");
-  return parts.length > 1 ? parts[parts.length - 1].toLowerCase() : "jpg";
 }
 
 /**

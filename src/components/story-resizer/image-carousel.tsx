@@ -22,11 +22,11 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   Empty,
+  EmptyContent,
+  EmptyDescription,
   EmptyHeader,
   EmptyMedia,
   EmptyTitle,
-  EmptyDescription,
-  EmptyContent,
 } from "@/components/ui/empty";
 import { useCanvasWorker } from "@/lib/use-canvas-worker";
 import { cn } from "@/lib/utils";
@@ -64,9 +64,9 @@ interface PreviewItemProps {
 
 // Progressive resolution steps with delays (null = full resolution)
 const RESOLUTION_STEPS: Array<{ maxSize: number | null; delay: number }> = [
-  { maxSize: 100, delay: 0 },     // Instant
-  { maxSize: 400, delay: 150 },   // After 150ms of no changes
-  { maxSize: null, delay: 400 },  // Full resolution after 400ms
+  { maxSize: 100, delay: 0 }, // Instant
+  { maxSize: 400, delay: 150 }, // After 150ms of no changes
+  { maxSize: null, delay: 400 }, // Full resolution after 400ms
 ];
 
 const PreviewItem = memo(function PreviewItem({
@@ -86,7 +86,7 @@ const PreviewItem = memo(function PreviewItem({
   canScrollNext,
 }: PreviewItemProps) {
   const [processedUrl, setProcessedUrl] = useState<string | null>(null);
-  const previousUrlsRef = useRef<string[]>([]);
+  const previousUrlsRef = useRef<Array<string>>([]);
   const currentQualityRef = useRef(-1);
   const { process } = useCanvasWorker();
 
