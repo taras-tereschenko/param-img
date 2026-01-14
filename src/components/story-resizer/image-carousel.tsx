@@ -20,6 +20,14 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import { Button } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyContent,
+} from "@/components/ui/empty";
 import { useCanvasWorker } from "@/lib/use-canvas-worker";
 import { cn } from "@/lib/utils";
 
@@ -274,20 +282,20 @@ function AddMoreItem({
 
   return (
     <div className="relative h-full">
-      <div
+      <Empty
         {...getRootProps()}
         className={cn(
-          "flex h-full cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed transition-colors",
+          "h-full cursor-pointer rounded-2xl border-2 transition-colors",
           isDragActive
             ? "border-primary bg-primary/5"
             : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50",
         )}
       >
         <input {...getInputProps()} />
-        <div className="flex flex-col items-center gap-4 p-6 text-center">
-          <div
+        <EmptyHeader>
+          <EmptyMedia
             className={cn(
-              "flex size-16 items-center justify-center rounded-full",
+              "size-16 rounded-full",
               isDragActive ? "bg-primary/10" : "bg-muted",
             )}
           >
@@ -299,22 +307,20 @@ function AddMoreItem({
                 isDragActive ? "text-primary" : "text-muted-foreground",
               )}
             />
-          </div>
-          <div className="space-y-1">
-            <p className="font-medium">
-              {isOnlyItem ? "Drop images here" : "Add more"}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              {isOnlyItem ? "or tap to select" : "Tap to select more images"}
-            </p>
-          </div>
-          {isOnlyItem && (
-            <Button variant="outline" className="mt-2">
-              Select Images
-            </Button>
-          )}
-        </div>
-      </div>
+          </EmptyMedia>
+          <EmptyTitle>
+            {isOnlyItem ? "Drop images here" : "Add more"}
+          </EmptyTitle>
+          <EmptyDescription>
+            {isOnlyItem ? "or tap to select" : "Tap to select more images"}
+          </EmptyDescription>
+        </EmptyHeader>
+        {isOnlyItem && (
+          <EmptyContent>
+            <Button variant="outline">Select Images</Button>
+          </EmptyContent>
+        )}
+      </Empty>
       {/* Navigation button - only show when can scroll */}
       {onPrev && canScrollPrev && (
         <Button
