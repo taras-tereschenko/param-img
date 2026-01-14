@@ -1,5 +1,4 @@
-import { memo, useCallback, useEffect, useState } from "react";
-import { useDebounce } from "@/lib/use-debounce";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -22,7 +21,7 @@ import {
   CarouselItem,
 } from "@/components/ui/carousel";
 import { Button } from "@/components/ui/button";
-import { processImageForStory } from "@/lib/canvas-utils";
+import { useCanvasWorker } from "@/lib/use-canvas-worker";
 import { cn } from "@/lib/utils";
 
 interface ImageCarouselProps {
@@ -74,54 +73,61 @@ const PreviewItem = memo(function PreviewItem({
 }: PreviewItemProps) {
   const [processedUrl, setProcessedUrl] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-
-  // Debounce expensive slider values to prevent processing on every tick
-  const debouncedBlurRadius = useDebounce(blurRadius, 100);
-  const debouncedScale = useDebounce(scale, 100);
+  const previousUrlRef = useRef<string | null>(null);
+  const { process } = useCanvasWorker();
 
   useEffect(() => {
-    let cancelled = false;
+    setIsProcessing(true);
 
-    async function process() {
-      setIsProcessing(true);
-      try {
-        const result = await processImageForStory(
-          image.originalDataUrl,
-          background,
-          customColor,
-          debouncedScale,
-          ambientBase,
-          ambientCustomColor,
-          debouncedBlurRadius,
-          borderRadius,
-        );
-        if (!cancelled) {
-          setProcessedUrl(result);
+    const cancel = process(
+      {
+        imageDataUrl: image.originalDataUrl,
+        backgroundType: background,
+        customColor,
+        scale,
+        ambientBase,
+        ambientCustomColor,
+        blurRadius,
+        borderRadius,
+      },
+      (url) => {
+        // Revoke previous URL to prevent memory leaks
+        if (previousUrlRef.current) {
+          URL.revokeObjectURL(previousUrlRef.current);
         }
-      } catch (error) {
+        previousUrlRef.current = url;
+        setProcessedUrl(url);
+        setIsProcessing(false);
+      },
+      (error) => {
         console.error("Failed to process image:", error);
-      } finally {
-        if (!cancelled) {
-          setIsProcessing(false);
-        }
-      }
-    }
-
-    process();
+        setIsProcessing(false);
+      },
+    );
 
     return () => {
-      cancelled = true;
+      cancel();
     };
   }, [
+    process,
     image.originalDataUrl,
     background,
     customColor,
     ambientBase,
     ambientCustomColor,
-    debouncedBlurRadius,
-    debouncedScale,
+    blurRadius,
+    scale,
     borderRadius,
   ]);
+
+  // Cleanup URL on unmount
+  useEffect(() => {
+    return () => {
+      if (previousUrlRef.current) {
+        URL.revokeObjectURL(previousUrlRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div className="flex h-full items-center justify-center">
