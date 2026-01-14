@@ -3,6 +3,14 @@ import { useDropzone } from "react-dropzone";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { CloudUploadIcon, Image01Icon } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+  EmptyDescription,
+  EmptyContent,
+} from "@/components/ui/empty";
 import { cn } from "@/lib/utils";
 
 interface ImageDropZoneProps {
@@ -33,10 +41,10 @@ export function ImageDropZone({ onFilesAdded, disabled }: ImageDropZoneProps) {
   });
 
   return (
-    <div
+    <Empty
       {...getRootProps()}
       className={cn(
-        "relative flex min-h-[200px] flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors",
+        "relative min-h-[200px] rounded-xl border-2 p-8 transition-colors",
         isDragActive
           ? "border-primary bg-primary/5"
           : "border-muted-foreground/25 hover:border-muted-foreground/50",
@@ -45,10 +53,10 @@ export function ImageDropZone({ onFilesAdded, disabled }: ImageDropZoneProps) {
     >
       <input {...getInputProps()} />
 
-      <div className="flex flex-col items-center gap-4 text-center">
-        <div
+      <EmptyHeader>
+        <EmptyMedia
           className={cn(
-            "rounded-full p-4 transition-colors",
+            "size-16 rounded-full",
             isDragActive ? "bg-primary/10" : "bg-muted",
           )}
         >
@@ -60,19 +68,14 @@ export function ImageDropZone({ onFilesAdded, disabled }: ImageDropZoneProps) {
               isDragActive ? "text-primary" : "text-muted-foreground",
             )}
           />
-        </div>
+        </EmptyMedia>
+        <EmptyTitle>
+          {isDragActive ? "Drop your images here" : "Drag and drop images here"}
+        </EmptyTitle>
+        <EmptyDescription>Supports JPEG, PNG, and WebP</EmptyDescription>
+      </EmptyHeader>
 
-        <div className="space-y-1">
-          <p className="text-sm font-medium">
-            {isDragActive
-              ? "Drop your images here"
-              : "Drag and drop images here"}
-          </p>
-          <p className="text-xs text-muted-foreground">
-            Supports JPEG, PNG, and WebP
-          </p>
-        </div>
-
+      <EmptyContent>
         <Button
           type="button"
           variant="outline"
@@ -81,7 +84,7 @@ export function ImageDropZone({ onFilesAdded, disabled }: ImageDropZoneProps) {
         >
           Browse Files
         </Button>
-      </div>
-    </div>
+      </EmptyContent>
+    </Empty>
   );
 }
