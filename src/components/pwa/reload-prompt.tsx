@@ -1,25 +1,36 @@
+import { useEffect, useRef } from "react";
+import { toast } from "sonner";
 import { useRegisterSW } from "virtual:pwa-register/react";
-import { Button } from "@/components/ui/button";
 
 export function ReloadPrompt() {
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
   } = useRegisterSW();
+  const toastIdRef = useRef<string | number | null>(null);
 
-  if (!needRefresh) return null;
+  useEffect(() => {
+    if (needRefresh && !toastIdRef.current) {
+      toastIdRef.current = toast("Update available", {
+        description: "A new version is ready to install",
+        duration: Infinity,
+        action: {
+          label: "Reload",
+          onClick: () => updateServiceWorker(true),
+        },
+        cancel: {
+          label: "Later",
+          onClick: () => setNeedRefresh(false),
+        },
+        onDismiss: () => setNeedRefresh(false),
+      });
+    }
 
-  return (
-    <div className="fixed bottom-4 left-4 right-4 z-50 rounded-lg border bg-card p-4 shadow-lg md:left-auto md:right-4 md:w-80">
-      <p className="mb-3 text-sm font-medium">New version available!</p>
-      <div className="flex gap-2">
-        <Button size="sm" onClick={() => updateServiceWorker(true)}>
-          Reload
-        </Button>
-        <Button size="sm" variant="ghost" onClick={() => setNeedRefresh(false)}>
-          Later
-        </Button>
-      </div>
-    </div>
-  );
+    if (!needRefresh && toastIdRef.current) {
+      toast.dismiss(toastIdRef.current);
+      toastIdRef.current = null;
+    }
+  }, [needRefresh, updateServiceWorker, setNeedRefresh]);
+
+  return null;
 }

@@ -10,6 +10,7 @@ import appCss from "../styles.css?url";
 import { PWAProvider } from "@/components/pwa/pwa-provider";
 import { ReloadPrompt } from "@/components/pwa/reload-prompt";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
+import { Toaster } from "@/components/ui/sonner";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -68,6 +69,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
           {children}
           <ReloadPrompt />
           <InstallPrompt />
+          <Toaster />
         </PWAProvider>
         <TanStackDevtools
           config={{
