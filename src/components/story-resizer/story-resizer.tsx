@@ -28,6 +28,7 @@ import {
   prepareImage,
 } from "@/lib/image-utils";
 import { processImageForStory } from "@/lib/canvas-utils";
+import { useInstallPrompt } from "@/components/pwa/pwa-provider";
 
 interface State {
   images: Array<ProcessedImage>;
@@ -114,6 +115,7 @@ function downloadDataUrl(dataUrl: string, filename: string): void {
 
 export function StoryResizer() {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const { triggerShow } = useInstallPrompt();
   const {
     images,
     background,
@@ -171,27 +173,33 @@ export function StoryResizer() {
     return "black"; // Default to black for blur/ambient modes
   }, [background]);
 
-  const handleFilesAdded = useCallback(async (files: Array<File>) => {
-    const newImages: Array<ProcessedImage> = await Promise.all(
-      files.map(async (file) => {
-        const dataUrl = await fileToDataUrl(file);
-        const preparedDataUrl = await prepareImage(dataUrl);
+  const handleFilesAdded = useCallback(
+    async (files: Array<File>) => {
+      const newImages: Array<ProcessedImage> = await Promise.all(
+        files.map(async (file) => {
+          const dataUrl = await fileToDataUrl(file);
+          const preparedDataUrl = await prepareImage(dataUrl);
 
-        return {
-          id: generateImageId(),
-          originalFile: file,
-          originalDataUrl: preparedDataUrl,
-          processedDataUrl: null,
-          backgroundColor: "blur" as BackgroundType,
-          customColor: null,
-          scale: DEFAULT_SCALE,
-          status: "pending" as const,
-        };
-      }),
-    );
+          return {
+            id: generateImageId(),
+            originalFile: file,
+            originalDataUrl: preparedDataUrl,
+            processedDataUrl: null,
+            backgroundColor: "blur" as BackgroundType,
+            customColor: null,
+            scale: DEFAULT_SCALE,
+            status: "pending" as const,
+          };
+        }),
+      );
 
-    dispatch({ type: "ADD_IMAGES", images: newImages });
-  }, []);
+      dispatch({ type: "ADD_IMAGES", images: newImages });
+
+      // Trigger install prompt after first image is added
+      triggerShow();
+    },
+    [triggerShow],
+  );
 
   const handleRemoveImage = useCallback((id: string) => {
     dispatch({ type: "REMOVE_IMAGE", id });

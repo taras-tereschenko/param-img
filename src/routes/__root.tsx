@@ -7,7 +7,9 @@ import {
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import appCss from "../styles.css?url";
-import { ThemeProvider } from "@/components/theme-provider";
+import { PWAProvider } from "@/components/pwa/pwa-provider";
+import { ReloadPrompt } from "@/components/pwa/reload-prompt";
+import { InstallPrompt } from "@/components/pwa/install-prompt";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -28,6 +30,11 @@ export const Route = createRootRoute({
         rel: "stylesheet",
         href: appCss,
       },
+      {
+        rel: "icon",
+        type: "image/png",
+        href: "/favicon.png",
+      },
     ],
   }),
   notFoundComponent: () => <Navigate to="/" />,
@@ -41,7 +48,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <ThemeProvider defaultTheme="system">{children}</ThemeProvider>
+        <PWAProvider>
+          {children}
+          <ReloadPrompt />
+          <InstallPrompt />
+        </PWAProvider>
         <TanStackDevtools
           config={{
             position: "bottom-right",
