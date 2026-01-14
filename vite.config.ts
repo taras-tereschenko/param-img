@@ -10,7 +10,7 @@ import { VitePWA } from "vite-plugin-pwa";
 const config = defineConfig({
   plugins: [
     devtools(),
-    nitro({ preset: "bun" }),
+    nitro({ preset: process.env.VERCEL ? "vercel" : "bun" }),
     // this is the plugin that enables path aliases
     viteTsConfigPaths({
       projects: ["./tsconfig.json"],
