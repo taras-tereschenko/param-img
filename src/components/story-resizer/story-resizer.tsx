@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { DownloadIcon, Loading01Icon } from "@hugeicons/core-free-icons";
+import { DownloadIcon } from "@hugeicons/core-free-icons";
+import { Spinner } from "@/components/ui/spinner";
 import { ImageCarousel } from "./image-carousel";
 import { ActionBar } from "./action-bar";
 import { BlurPanel } from "./blur-panel";
@@ -15,6 +16,11 @@ import type {
   ProcessedImage,
 } from "@/lib/types";
 import { Button } from "@/components/ui/button";
+import {
+  Progress,
+  ProgressTrack,
+  ProgressIndicator,
+} from "@/components/ui/progress";
 import {
   DEFAULT_AMBIENT_BLUR_RADIUS,
   DEFAULT_BLUR_RADIUS,
@@ -353,16 +359,36 @@ export function StoryResizer() {
         <header className="flex items-center justify-between border-b px-4 py-3">
           <h1 className="text-lg font-semibold">Param Img</h1>
           {hasImages && (
-            <Button size="sm" onClick={handleDownload} disabled={isDownloading}>
-              <HugeiconsIcon
-                icon={isDownloading ? Loading01Icon : DownloadIcon}
-                strokeWidth={2}
-                data-icon="inline-start"
-                className={isDownloading ? "animate-spin" : undefined}
-              />
-              {isDownloading
-                ? `${Math.round(downloadProgress)}%`
-                : `Export images (${images.length})`}
+            <Button
+              size="sm"
+              onClick={handleDownload}
+              disabled={isDownloading}
+              className="relative overflow-hidden"
+            >
+              {isDownloading && (
+                <Progress
+                  value={downloadProgress}
+                  className="absolute inset-0 flex-nowrap gap-0"
+                >
+                  <ProgressTrack className="absolute inset-0 h-full rounded-none bg-transparent">
+                    <ProgressIndicator className="bg-primary-foreground/20" />
+                  </ProgressTrack>
+                </Progress>
+              )}
+              {isDownloading ? (
+                <Spinner className="relative z-10" />
+              ) : (
+                <HugeiconsIcon
+                  icon={DownloadIcon}
+                  strokeWidth={2}
+                  data-icon="inline-start"
+                />
+              )}
+              <span className={isDownloading ? "relative z-10" : undefined}>
+                {isDownloading
+                  ? `${Math.round(downloadProgress)}%`
+                  : `Export images (${images.length})`}
+              </span>
             </Button>
           )}
         </header>

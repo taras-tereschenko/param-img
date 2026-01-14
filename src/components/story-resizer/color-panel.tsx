@@ -5,6 +5,11 @@ import {
 } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 interface ColorPanelProps {
@@ -20,7 +25,7 @@ interface ColorOptionProps {
   selected: boolean;
   onClick: () => void;
   disabled?: boolean;
-  title?: string;
+  disabledReason?: string;
   preview?: React.ReactNode;
   icon?: React.ReactNode;
 }
@@ -30,16 +35,15 @@ function ColorOption({
   selected,
   onClick,
   disabled,
-  title,
+  disabledReason,
   preview,
   icon,
 }: ColorOptionProps) {
-  return (
+  const button = (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      title={title}
       className={cn(
         "relative flex flex-1 flex-col items-center gap-1.5 rounded-lg border-2 p-3 transition-colors",
         disabled
@@ -62,6 +66,19 @@ function ColorOption({
       <span className="text-xs font-medium">{label}</span>
     </button>
   );
+
+  if (disabled && disabledReason) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild className="flex-1">
+          <span>{button}</span>
+        </TooltipTrigger>
+        <TooltipContent>{disabledReason}</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return button;
 }
 
 const isEyeDropperSupported =
@@ -114,11 +131,7 @@ export function ColorPanel({
               selected={selectedColor === "custom"}
               onClick={handleEyedropperClick}
               disabled={!isEyeDropperSupported}
-              title={
-                !isEyeDropperSupported
-                  ? "EyeDropper not supported in this browser"
-                  : undefined
-              }
+              disabledReason="Color picker not supported in this browser"
               icon={
                 customColor ? (
                   <div

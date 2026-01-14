@@ -7,6 +7,11 @@ import type { AmbientBaseType } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { MAX_AMBIENT_BLUR_RADIUS, MIN_BLUR_RADIUS } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -25,7 +30,7 @@ interface BaseColorOptionProps {
   selected: boolean;
   onClick: () => void;
   disabled?: boolean;
-  title?: string;
+  disabledReason?: string;
   preview?: React.ReactNode;
   icon?: React.ReactNode;
 }
@@ -35,16 +40,15 @@ function BaseColorOption({
   selected,
   onClick,
   disabled,
-  title,
+  disabledReason,
   preview,
   icon,
 }: BaseColorOptionProps) {
-  return (
+  const button = (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      title={title}
       className={cn(
         "relative flex flex-1 flex-col items-center gap-1.5 rounded-lg border-2 p-3 transition-colors",
         disabled
@@ -67,6 +71,19 @@ function BaseColorOption({
       <span className="text-xs font-medium">{label}</span>
     </button>
   );
+
+  if (disabled && disabledReason) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild className="flex-1">
+          <span>{button}</span>
+        </TooltipTrigger>
+        <TooltipContent>{disabledReason}</TooltipContent>
+      </Tooltip>
+    );
+  }
+
+  return button;
 }
 
 const isEyeDropperSupported =
@@ -122,11 +139,7 @@ export function AmbientPanel({
               selected={ambientBase === "custom"}
               onClick={handleEyedropperClick}
               disabled={!isEyeDropperSupported}
-              title={
-                !isEyeDropperSupported
-                  ? "EyeDropper not supported in this browser"
-                  : undefined
-              }
+              disabledReason="Color picker not supported in this browser"
               icon={
                 ambientCustomColor ? (
                   <div
