@@ -7,6 +7,13 @@ declare let self: ServiceWorkerGlobalScope;
 precacheAndRoute(self.__WB_MANIFEST);
 cleanupOutdatedCaches();
 
+// Handle skip waiting message from the app
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
+
 // IndexedDB helper for storing shared files
 const DB_NAME = "param-img-share";
 const STORE_NAME = "shared-files";
