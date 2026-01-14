@@ -129,3 +129,8 @@
     @apply font-sans;
   }
 }
+
+/* Sonner toast button spacing fix */
+[data-sonner-toast] [data-button] {
+  @apply ml-2;
+}
