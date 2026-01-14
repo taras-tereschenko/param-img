@@ -15,6 +15,7 @@ export interface ProcessParams {
   ambientCustomColor?: string | null;
   blurRadius?: number;
   borderRadius?: BorderRadiusOption;
+  maxSize?: number | null; // null or undefined = full resolution
 }
 
 type Callback = (url: string) => void;

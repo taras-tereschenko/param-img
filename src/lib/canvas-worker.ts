@@ -26,6 +26,7 @@ export interface ProcessRequest {
   ambientCustomColor?: string | null;
   blurRadius?: number;
   borderRadius?: BorderRadiusOption;
+  maxSize?: number | null; // null or undefined = full resolution
 }
 
 export interface ProcessResponse {
@@ -215,11 +216,25 @@ async function processImageForStory(
   ambientCustomColor?: string | null,
   blurRadius?: number,
   borderRadius?: BorderRadiusOption,
+  maxSize?: number | null,
 ): Promise<Blob> {
   const img = await loadImageBitmap(imageDataUrl);
 
+  // Calculate scale factor based on maxSize
+  let sizeScale = 1;
+  if (maxSize != null) {
+    const maxDim = Math.max(img.width, img.height);
+    if (maxDim > maxSize) {
+      sizeScale = maxSize / maxDim;
+    }
+  }
+
+  // Apply size scaling to base dimensions
+  const baseWidth = Math.round(img.width * sizeScale);
+  const baseHeight = Math.round(img.height * sizeScale);
+
   const { width: canvasWidth, height: canvasHeight } =
-    calculateCanvasDimensions(img.width, img.height);
+    calculateCanvasDimensions(baseWidth, baseHeight);
 
   const canvas = new OffscreenCanvas(canvasWidth, canvasHeight);
   const ctx = canvas.getContext("2d");
@@ -228,8 +243,13 @@ async function processImageForStory(
     throw new Error("Failed to get canvas context");
   }
 
-  const drawWidth = img.width * scale;
-  const drawHeight = img.height * scale;
+  const drawWidth = baseWidth * scale;
+  const drawHeight = baseHeight * scale;
+
+  // Scale blur radius proportionally when downscaling
+  const adjustedBlurRadius = sizeScale < 1 && blurRadius
+    ? Math.round(blurRadius * sizeScale)
+    : blurRadius;
   const x = (canvasWidth - drawWidth) / 2;
   const y = (canvasHeight - drawHeight) / 2;
 
@@ -250,10 +270,10 @@ async function processImageForStory(
       y,
       drawWidth,
       drawHeight,
-      blurRadius ?? DEFAULT_BLUR_RADIUS,
+      adjustedBlurRadius ?? DEFAULT_BLUR_RADIUS,
     );
   } else {
-    drawBackground(ctx, canvas, img, backgroundType, customColor, blurRadius);
+    drawBackground(ctx, canvas, img, backgroundType, customColor, adjustedBlurRadius);
   }
 
   // Draw the original image centered and scaled with optional rounded corners
@@ -291,6 +311,7 @@ self.onmessage = async (e: MessageEvent<ProcessRequest>) => {
     ambientCustomColor,
     blurRadius,
     borderRadius,
+    maxSize,
   } = e.data;
 
   try {
@@ -303,6 +324,7 @@ self.onmessage = async (e: MessageEvent<ProcessRequest>) => {
       ambientCustomColor,
       blurRadius,
       borderRadius,
+      maxSize,
     );
 
     // Transfer the blob back to main thread

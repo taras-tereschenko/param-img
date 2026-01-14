@@ -6,7 +6,6 @@ import {
   CloudUploadIcon,
   Delete02Icon,
   DownloadCircle02Icon,
-  Loading01Icon,
 } from "@hugeicons/core-free-icons";
 import type {
   AmbientBaseType,
@@ -55,6 +54,13 @@ interface PreviewItemProps {
   canScrollNext?: boolean;
 }
 
+// Progressive resolution steps with delays (null = full resolution)
+const RESOLUTION_STEPS: Array<{ maxSize: number | null; delay: number }> = [
+  { maxSize: 100, delay: 0 },     // Instant
+  { maxSize: 400, delay: 150 },   // After 150ms of no changes
+  { maxSize: null, delay: 400 },  // Full resolution after 400ms
+];
+
 const PreviewItem = memo(function PreviewItem({
   image,
   background,
@@ -72,41 +78,66 @@ const PreviewItem = memo(function PreviewItem({
   canScrollNext,
 }: PreviewItemProps) {
   const [processedUrl, setProcessedUrl] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const previousUrlRef = useRef<string | null>(null);
+  const previousUrlsRef = useRef<string[]>([]);
+  const currentQualityRef = useRef(-1);
   const { process } = useCanvasWorker();
 
   useEffect(() => {
-    setIsProcessing(true);
+    // Reset quality tracking for new render cycle
+    currentQualityRef.current = -1;
+    const cancellers: Array<() => void> = [];
+    const timeouts: Array<ReturnType<typeof setTimeout>> = [];
 
-    const cancel = process(
-      {
-        imageDataUrl: image.originalDataUrl,
-        backgroundType: background,
-        customColor,
-        scale,
-        ambientBase,
-        ambientCustomColor,
-        blurRadius,
-        borderRadius,
-      },
-      (url) => {
-        // Revoke previous URL to prevent memory leaks
-        if (previousUrlRef.current) {
-          URL.revokeObjectURL(previousUrlRef.current);
-        }
-        previousUrlRef.current = url;
-        setProcessedUrl(url);
-        setIsProcessing(false);
-      },
-      (error) => {
-        console.error("Failed to process image:", error);
-        setIsProcessing(false);
-      },
-    );
+    // Fire off requests with appropriate delays
+    RESOLUTION_STEPS.forEach(({ maxSize, delay }, qualityIndex) => {
+      const fireRequest = () => {
+        const cancel = process(
+          {
+            imageDataUrl: image.originalDataUrl,
+            backgroundType: background,
+            customColor,
+            scale,
+            ambientBase,
+            ambientCustomColor,
+            blurRadius,
+            borderRadius,
+            maxSize,
+          },
+          (url) => {
+            // Only update if this is higher quality than what we currently have
+            if (qualityIndex > currentQualityRef.current) {
+              // Revoke all previous URLs
+              previousUrlsRef.current.forEach((oldUrl) => {
+                URL.revokeObjectURL(oldUrl);
+              });
+              previousUrlsRef.current = [url];
+              currentQualityRef.current = qualityIndex;
+              setProcessedUrl(url);
+            } else {
+              // This result is stale, revoke it
+              URL.revokeObjectURL(url);
+            }
+          },
+          (error) => {
+            console.error("Failed to process image:", error);
+          },
+        );
+        cancellers.push(cancel);
+      };
+
+      if (delay === 0) {
+        fireRequest();
+      } else {
+        const timeout = setTimeout(fireRequest, delay);
+        timeouts.push(timeout);
+      }
+    });
 
     return () => {
-      cancel();
+      // Clear pending timeouts (prevents higher-res requests if params change quickly)
+      timeouts.forEach((t) => clearTimeout(t));
+      // Cancel any in-flight requests
+      cancellers.forEach((cancel) => cancel());
     };
   }, [
     process,
@@ -120,32 +151,23 @@ const PreviewItem = memo(function PreviewItem({
     borderRadius,
   ]);
 
-  // Cleanup URL on unmount
+  // Cleanup URLs on unmount
   useEffect(() => {
     return () => {
-      if (previousUrlRef.current) {
-        URL.revokeObjectURL(previousUrlRef.current);
-      }
+      previousUrlsRef.current.forEach((url) => {
+        URL.revokeObjectURL(url);
+      });
     };
   }, []);
 
   return (
     <div className="flex h-full items-center justify-center">
-      <div className="relative aspect-[9/16] max-h-full max-w-full overflow-hidden rounded-lg border">
-        {isProcessing && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-background/80">
-            <HugeiconsIcon
-              icon={Loading01Icon}
-              strokeWidth={2}
-              className="size-8 animate-spin text-muted-foreground"
-            />
-          </div>
-        )}
+      <div className="relative aspect-[9/16] h-full max-w-full overflow-hidden rounded-lg border">
         {processedUrl && (
           <img
             src={processedUrl}
             alt={`Preview of ${image.originalFile.name}`}
-            className="h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover"
           />
         )}
         {/* Overlay buttons - separated to prevent misclicks */}
@@ -163,7 +185,7 @@ const PreviewItem = memo(function PreviewItem({
           variant="secondary"
           className="absolute right-2 top-2 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
           onClick={() => processedUrl && onDownload(processedUrl)}
-          disabled={!processedUrl || isProcessing}
+          disabled={!processedUrl}
         >
           <HugeiconsIcon icon={DownloadCircle02Icon} strokeWidth={2} />
           <span className="sr-only">Download</span>

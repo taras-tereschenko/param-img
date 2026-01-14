@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useReducer, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { DownloadIcon, Loading01Icon } from "@hugeicons/core-free-icons";
@@ -152,6 +152,13 @@ export function StoryResizer() {
       resetScroll: false,
     });
   }, [navigate]);
+
+  // Close panel if no images (e.g., after page reload)
+  useEffect(() => {
+    if (images.length === 0 && activeSheet) {
+      closePanel();
+    }
+  }, [images.length, activeSheet, closePanel]);
 
   const [isDownloading, setIsDownloading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
