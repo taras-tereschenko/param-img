@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev --port 3000",
-    "build": "vite build && cp dist/sw.js dist/workbox-*.js .output/public/ 2>/dev/null || true",
+    "build": "vite build && (cp dist/sw.js dist/workbox-*.js .vercel/output/static/ 2>/dev/null || cp dist/sw.js dist/workbox-*.js .output/public/ 2>/dev/null || true)",
     "preview": "vite preview",
     "test": "vitest run",
     "lint": "eslint",
