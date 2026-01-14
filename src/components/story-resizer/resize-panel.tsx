@@ -2,8 +2,8 @@ import type { BorderRadiusOption } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { BORDER_RADIUS_OPTIONS, MAX_SCALE, MIN_SCALE } from "@/lib/types";
-import { cn } from "@/lib/utils";
 
 interface ResizePanelProps {
   scale: number;
@@ -52,23 +52,25 @@ export function ResizePanel({
 
         <div className="space-y-2">
           <Label className="text-xs">Corner Radius</Label>
-          <div className="flex gap-2">
+          <ToggleGroup
+            type="single"
+            value={borderRadius}
+            onValueChange={(value) => {
+              if (value) onBorderRadiusChange(value as BorderRadiusOption);
+            }}
+            className="w-full"
+            variant="outline"
+          >
             {BORDER_RADIUS_OPTIONS.map((option) => (
-              <button
+              <ToggleGroupItem
                 key={option.value}
-                type="button"
-                onClick={() => onBorderRadiusChange(option.value)}
-                className={cn(
-                  "flex h-10 flex-1 items-center justify-center rounded-lg border-2 text-sm font-medium transition-colors",
-                  borderRadius === option.value
-                    ? "border-primary bg-primary/5"
-                    : "border-muted hover:border-muted-foreground/50",
-                )}
+                value={option.value}
+                className="h-10 flex-1"
               >
                 {option.label}
-              </button>
+              </ToggleGroupItem>
             ))}
-          </div>
+          </ToggleGroup>
         </div>
 
         <Button onClick={onBack} className="w-full">
