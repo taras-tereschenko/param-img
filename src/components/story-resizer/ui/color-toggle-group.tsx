@@ -152,8 +152,8 @@ export function ColorToggleGroup({
           </ToggleGroupItem>
         ) : (
           <Tooltip>
-            <TooltipTrigger asChild className="flex-1">
-              <div className="flex">
+            <TooltipTrigger asChild>
+              <span className="flex flex-1">
                 <ToggleGroupItem
                   value="custom"
                   disabled
@@ -168,7 +168,7 @@ export function ColorToggleGroup({
                   </div>
                   <span className="text-xs font-medium">Pick</span>
                 </ToggleGroupItem>
-              </div>
+              </span>
             </TooltipTrigger>
             <TooltipContent>
               Color picker not supported in this browser
