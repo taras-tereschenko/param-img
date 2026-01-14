@@ -24,6 +24,14 @@ export const Route = createRootRoute({
       {
         title: "Param Img",
       },
+      {
+        name: "theme-color",
+        content: "#808080",
+      },
+      {
+        name: "description",
+        content: "Resize images for Instagram Stories",
+      },
     ],
     links: [
       {
@@ -34,6 +42,14 @@ export const Route = createRootRoute({
         rel: "icon",
         type: "image/png",
         href: "/favicon.png",
+      },
+      {
+        rel: "apple-touch-icon",
+        href: "/logo192.png",
+      },
+      {
+        rel: "manifest",
+        href: "/manifest.webmanifest",
       },
     ],
   }),
