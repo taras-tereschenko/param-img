@@ -60,13 +60,25 @@ interface PreviewItemProps {
   onNext?: () => void;
   canScrollPrev?: boolean;
   canScrollNext?: boolean;
+  isActive?: boolean;
 }
 
 // Progressive resolution steps with delays (null = full resolution)
-const RESOLUTION_STEPS: Array<{ maxSize: number | null; delay: number }> = [
-  { maxSize: 100, delay: 0 }, // Instant
-  { maxSize: 400, delay: 150 }, // After 150ms of no changes
-  { maxSize: null, delay: 400 }, // Full resolution after 400ms
+// Active (visible) items get full quality, inactive get preview only
+const ACTIVE_RESOLUTION_STEPS: Array<{
+  maxSize: number | null;
+  delay: number;
+}> = [
+  { maxSize: 200, delay: 0 }, // Instant low-res
+  { maxSize: 600, delay: 100 }, // Medium after 100ms
+  { maxSize: null, delay: 300 }, // Full resolution after 300ms
+];
+
+const INACTIVE_RESOLUTION_STEPS: Array<{
+  maxSize: number | null;
+  delay: number;
+}> = [
+  { maxSize: 200, delay: 0 }, // Only low-res for inactive items
 ];
 
 const PreviewItem = memo(function PreviewItem({
@@ -84,6 +96,7 @@ const PreviewItem = memo(function PreviewItem({
   onNext,
   canScrollPrev,
   canScrollNext,
+  isActive = true,
 }: PreviewItemProps) {
   const [processedUrl, setProcessedUrl] = useState<string | null>(null);
   const previousUrlsRef = useRef<Array<string>>([]);
@@ -96,8 +109,13 @@ const PreviewItem = memo(function PreviewItem({
     const cancellers: Array<() => void> = [];
     const timeouts: Array<ReturnType<typeof setTimeout>> = [];
 
+    // Use different resolution steps based on visibility
+    const steps = isActive
+      ? ACTIVE_RESOLUTION_STEPS
+      : INACTIVE_RESOLUTION_STEPS;
+
     // Fire off requests with appropriate delays
-    RESOLUTION_STEPS.forEach(({ maxSize, delay }, qualityIndex) => {
+    steps.forEach(({ maxSize, delay }, qualityIndex) => {
       const fireRequest = () => {
         const cancel = process(
           {
@@ -157,6 +175,7 @@ const PreviewItem = memo(function PreviewItem({
     blurRadius,
     scale,
     borderRadius,
+    isActive,
   ]);
 
   // Cleanup URLs on unmount
@@ -415,7 +434,7 @@ export function ImageCarousel({
           }}
         >
           <CarouselContent className="-ml-0">
-            {images.map((image) => (
+            {images.map((image, index) => (
               <CarouselItem key={image.id} className="pl-0">
                 <div className="h-full px-4">
                   <PreviewItem
@@ -435,6 +454,7 @@ export function ImageCarousel({
                     onNext={count > 1 ? () => api?.scrollNext() : undefined}
                     canScrollPrev={api?.canScrollPrev() ?? false}
                     canScrollNext={api?.canScrollNext() ?? false}
+                    isActive={index === current}
                   />
                 </div>
               </CarouselItem>
