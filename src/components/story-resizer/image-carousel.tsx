@@ -28,7 +28,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { useCanvasWorker } from "@/lib/use-canvas-worker";
+import { clearImageCache, useCanvasWorker } from "@/lib/use-canvas-worker";
 import { useThrottle } from "@/lib/use-throttle";
 import { cn } from "@/lib/utils";
 
@@ -134,6 +134,7 @@ const PreviewItem = memo(function PreviewItem({
       const fireRequest = () => {
         const cancel = process(
           {
+            imageId: image.id,
             imageDataUrl: image.originalDataUrl,
             backgroundType: background,
             customColor,
@@ -193,14 +194,17 @@ const PreviewItem = memo(function PreviewItem({
     isActive,
   ]);
 
-  // Cleanup URLs on unmount
+  // Cleanup URLs and worker cache on unmount
   useEffect(() => {
+    const imageId = image.id;
     return () => {
       previousUrlsRef.current.forEach((url) => {
         URL.revokeObjectURL(url);
       });
+      // Clear cached ImageBitmap in worker to free memory
+      clearImageCache(imageId);
     };
-  }, []);
+  }, [image.id]);
 
   return (
     <div className="flex h-full items-center justify-center">

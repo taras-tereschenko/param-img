@@ -22,6 +22,7 @@ import type {
 
 export interface ProcessRequest {
   id: string;
+  imageId?: string; // Unique ID for caching ImageBitmap
   imageDataUrl: string;
   backgroundType: BackgroundType;
   customColor: string | null;
@@ -32,6 +33,16 @@ export interface ProcessRequest {
   borderRadius?: BorderRadiusOption;
   maxSize?: number | null; // null or undefined = full resolution
 }
+
+export interface ClearCacheRequest {
+  type: "clearCache";
+  imageId: string;
+}
+
+export type WorkerRequest = ProcessRequest | ClearCacheRequest;
+
+// Cache for decoded ImageBitmaps to avoid re-decoding on settings changes
+const imageBitmapCache = new Map<string, ImageBitmap>();
 
 export interface ProcessResponse {
   id: string;
@@ -77,11 +88,31 @@ function drawBackground(
 
 /**
  * Load an image from a data URL using createImageBitmap
+ * If imageId is provided, uses cache to avoid re-decoding
  */
-async function loadImageBitmap(dataUrl: string): Promise<ImageBitmap> {
+async function loadImageBitmap(
+  dataUrl: string,
+  imageId?: string,
+): Promise<ImageBitmap> {
+  // Check cache first
+  if (imageId) {
+    const cached = imageBitmapCache.get(imageId);
+    if (cached) {
+      return cached;
+    }
+  }
+
+  // Load and decode the image
   const response = await fetch(dataUrl);
   const blob = await response.blob();
-  return createImageBitmap(blob);
+  const bitmap = await createImageBitmap(blob);
+
+  // Cache if imageId provided
+  if (imageId) {
+    imageBitmapCache.set(imageId, bitmap);
+  }
+
+  return bitmap;
 }
 
 /**
@@ -97,8 +128,10 @@ async function processImageForStory(
   blurRadius?: number,
   borderRadius?: BorderRadiusOption,
   maxSize?: number | null,
+  imageId?: string,
 ): Promise<Blob> {
-  const img = await loadImageBitmap(imageDataUrl);
+  const img = await loadImageBitmap(imageDataUrl, imageId);
+  const isCached = imageId && imageBitmapCache.has(imageId);
 
   // Calculate scale factor based on maxSize
   let sizeScale = 1;
@@ -181,16 +214,32 @@ async function processImageForStory(
     ctx.drawImage(img, x, y, drawWidth, drawHeight);
   }
 
-  // Close the ImageBitmap to free memory
-  img.close();
+  // Close the ImageBitmap to free memory (but not if cached for reuse)
+  if (!isCached) {
+    img.close();
+  }
 
   return canvas.convertToBlob({ type: "image/png" });
 }
 
 // Worker message handler
-self.onmessage = async (e: MessageEvent<ProcessRequest>) => {
+self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
+  const data = e.data;
+
+  // Handle cache clear request
+  if ("type" in data) {
+    const cached = imageBitmapCache.get(data.imageId);
+    if (cached) {
+      cached.close();
+      imageBitmapCache.delete(data.imageId);
+    }
+    return;
+  }
+
+  // Handle process request
   const {
     id,
+    imageId,
     imageDataUrl,
     backgroundType,
     customColor,
@@ -200,7 +249,7 @@ self.onmessage = async (e: MessageEvent<ProcessRequest>) => {
     blurRadius,
     borderRadius,
     maxSize,
-  } = e.data;
+  } = data;
 
   try {
     const blob = await processImageForStory(
@@ -213,6 +262,7 @@ self.onmessage = async (e: MessageEvent<ProcessRequest>) => {
       blurRadius,
       borderRadius,
       maxSize,
+      imageId,
     );
 
     // Transfer the blob back to main thread

@@ -7,6 +7,7 @@ import type {
 import type { ProcessError, ProcessResponse } from "./canvas-worker";
 
 export interface ProcessParams {
+  imageId?: string; // Unique ID for caching ImageBitmap in worker
   imageDataUrl: string;
   backgroundType: BackgroundType;
   customColor: string | null;
@@ -77,6 +78,16 @@ function cleanupWorker(): void {
     globalWorker.terminate();
     globalWorker = null;
     globalPending.clear();
+  }
+}
+
+/**
+ * Clear the cached ImageBitmap for a specific image in the worker
+ * Call this when an image is removed to free memory
+ */
+export function clearImageCache(imageId: string): void {
+  if (globalWorker) {
+    globalWorker.postMessage({ type: "clearCache", imageId });
   }
 }
 
