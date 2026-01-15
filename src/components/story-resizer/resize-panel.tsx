@@ -48,11 +48,12 @@ export function ResizePanel({
       <div className="space-y-2">
         <Label className="text-xs">Corner Radius</Label>
         <ToggleGroup
-          type="single"
-          value={String(borderRadius)}
-          onValueChange={(value) => {
+          value={[String(borderRadius)]}
+          onValueChange={(values) => {
+            const lastValue = values[values.length - 1];
+            if (!lastValue) return;
             const option = BORDER_RADIUS_OPTIONS.find(
-              (opt) => String(opt.value) === value,
+              (opt) => String(opt.value) === lastValue,
             );
             if (option) {
               onBorderRadiusChange(option.value);
