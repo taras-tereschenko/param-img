@@ -73,16 +73,16 @@ const ACTIVE_RESOLUTION_STEPS: Array<{
   maxSize: number | null;
   delay: number;
 }> = [
-  { maxSize: 80, delay: 0 }, // Instant tiny preview
-  { maxSize: 400, delay: 150 }, // Medium after 150ms
-  { maxSize: null, delay: 400 }, // Full resolution after 400ms
+  { maxSize: 50, delay: 0 }, // Instant tiny preview
+  { maxSize: 200, delay: 100 }, // Medium after 100ms
+  { maxSize: null, delay: 300 }, // Full resolution after 300ms
 ];
 
 const INACTIVE_RESOLUTION_STEPS: Array<{
   maxSize: number | null;
   delay: number;
 }> = [
-  { maxSize: 80, delay: 0 }, // Only tiny preview for inactive items
+  { maxSize: 50, delay: 0 }, // Only tiny preview for inactive items
 ];
 
 const PreviewItem = memo(function PreviewItem({

@@ -29,6 +29,8 @@ interface PendingRequest {
 
 let globalWorker: Worker | null = null;
 const globalPending: Map<string, PendingRequest> = new Map();
+// Track which imageIds have been sent to worker (cache is populated)
+const sentImageIds: Set<string> = new Set();
 let instanceCount = 0;
 
 function generateId(): string {
@@ -78,6 +80,7 @@ function cleanupWorker(): void {
     globalWorker.terminate();
     globalWorker = null;
     globalPending.clear();
+    sentImageIds.clear();
   }
 }
 
@@ -86,6 +89,7 @@ function cleanupWorker(): void {
  * Call this when an image is removed to free memory
  */
 export function clearImageCache(imageId: string): void {
+  sentImageIds.delete(imageId);
   if (globalWorker) {
     globalWorker.postMessage({ type: "clearCache", imageId });
   }
@@ -159,7 +163,21 @@ export function useCanvasWorker() {
         },
       });
 
-      globalWorker.postMessage({ id, ...params });
+      // Optimization: Skip sending dataUrl if worker already has this image cached
+      const { imageId, imageDataUrl, ...restParams } = params;
+      const alreadyCached = imageId && sentImageIds.has(imageId);
+
+      if (imageId && !alreadyCached) {
+        sentImageIds.add(imageId);
+      }
+
+      globalWorker.postMessage({
+        id,
+        imageId,
+        // Only send dataUrl on first request for this imageId
+        imageDataUrl: alreadyCached ? undefined : imageDataUrl,
+        ...restParams,
+      });
 
       // Return cancel function
       return () => {

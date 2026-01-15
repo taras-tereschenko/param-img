@@ -23,7 +23,7 @@ import type {
 export interface ProcessRequest {
   id: string;
   imageId?: string; // Unique ID for caching ImageBitmap
-  imageDataUrl: string;
+  imageDataUrl?: string; // Optional if imageId is cached
   backgroundType: BackgroundType;
   customColor: string | null;
   scale: number;
@@ -89,9 +89,10 @@ function drawBackground(
 /**
  * Load an image from a data URL using createImageBitmap
  * If imageId is provided, uses cache to avoid re-decoding
+ * If dataUrl is not provided, MUST have cached bitmap
  */
 async function loadImageBitmap(
-  dataUrl: string,
+  dataUrl: string | undefined,
   imageId?: string,
 ): Promise<ImageBitmap> {
   // Check cache first
@@ -100,6 +101,11 @@ async function loadImageBitmap(
     if (cached) {
       return cached;
     }
+  }
+
+  // If no dataUrl and no cache, we can't proceed
+  if (!dataUrl) {
+    throw new Error(`No cached bitmap for imageId: ${imageId}`);
   }
 
   // Load and decode the image
@@ -119,7 +125,7 @@ async function loadImageBitmap(
  * Process an image for Instagram Story format
  */
 async function processImageForStory(
-  imageDataUrl: string,
+  imageDataUrl: string | undefined,
   backgroundType: BackgroundType,
   customColor: string | null,
   scale: number,
