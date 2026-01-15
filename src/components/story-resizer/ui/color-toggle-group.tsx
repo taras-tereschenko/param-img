@@ -151,29 +151,20 @@ export function ColorToggleGroup({
             <span className="text-xs font-medium">Pick</span>
           </ToggleGroupItem>
         ) : (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="block flex-1">
-                <ToggleGroupItem
-                  value="custom"
-                  disabled
-                  className={cn(itemClassName, "w-full")}
-                >
-                  <div className={containerClasses}>
-                    <HugeiconsIcon
-                      icon={ColorPickerIcon}
-                      strokeWidth={1.5}
-                      className={iconClasses}
-                    />
-                  </div>
-                  <span className="text-xs font-medium">Pick</span>
-                </ToggleGroupItem>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              Color picker not supported in this browser
-            </TooltipContent>
-          </Tooltip>
+          <ToggleGroupItem
+            value="custom"
+            disabled
+            className={itemClassName}
+          >
+            <div className={containerClasses}>
+              <HugeiconsIcon
+                icon={ColorPickerIcon}
+                strokeWidth={1.5}
+                className={iconClasses}
+              />
+            </div>
+            <span className="text-xs font-medium">Pick</span>
+          </ToggleGroupItem>
         )}
       </ToggleGroup>
     </div>
