@@ -5,9 +5,12 @@ import {
   generateImageId,
   prepareImage,
 } from "@/lib/image-utils";
+import { saveImageImmediately } from "@/lib/image-storage";
 
 /**
  * Prepare files into ProcessedImage objects ready for the carousel
+ * Also saves each image to IndexedDB immediately to ensure zero-transfer
+ * optimization works (worker reads from IndexedDB instead of receiving data URL)
  */
 export async function prepareProcessedImages(
   files: Array<File>,
@@ -16,9 +19,17 @@ export async function prepareProcessedImages(
     files.map(async (file) => {
       const dataUrl = await fileToDataUrl(file);
       const preparedDataUrl = await prepareImage(dataUrl);
+      const id = generateImageId();
+
+      // Save to IndexedDB BEFORE returning, so worker can read it
+      await saveImageImmediately({
+        id,
+        originalFile: file,
+        originalDataUrl: preparedDataUrl,
+      });
 
       return {
-        id: generateImageId(),
+        id,
         originalFile: file,
         originalDataUrl: preparedDataUrl,
         processedDataUrl: null,

@@ -44,6 +44,49 @@ export type WorkerRequest = ProcessRequest | ClearCacheRequest;
 // Cache for decoded ImageBitmaps to avoid re-decoding on settings changes
 const imageBitmapCache = new Map<string, ImageBitmap>();
 
+// IndexedDB config - must match image-storage.ts
+const IMAGE_DB_CONFIG = {
+  name: "param-img-storage",
+  version: 1,
+  storeName: "images",
+};
+
+/**
+ * Read image data URL from IndexedDB by id
+ */
+async function getImageDataUrlFromDB(
+  imageId: string,
+): Promise<string | undefined> {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(
+      IMAGE_DB_CONFIG.name,
+      IMAGE_DB_CONFIG.version,
+    );
+
+    request.onerror = () => reject(request.error);
+
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(IMAGE_DB_CONFIG.storeName)) {
+        db.createObjectStore(IMAGE_DB_CONFIG.storeName, { keyPath: "id" });
+      }
+    };
+
+    request.onsuccess = () => {
+      const db = request.result;
+      const tx = db.transaction(IMAGE_DB_CONFIG.storeName, "readonly");
+      const store = tx.objectStore(IMAGE_DB_CONFIG.storeName);
+      const getRequest = store.get(imageId);
+
+      getRequest.onerror = () => reject(getRequest.error);
+      getRequest.onsuccess = () => {
+        const result = getRequest.result;
+        resolve(result?.originalDataUrl);
+      };
+    };
+  });
+}
+
 export interface ProcessResponse {
   id: string;
   blob: Blob;
@@ -89,7 +132,7 @@ function drawBackground(
 /**
  * Load an image from a data URL using createImageBitmap
  * If imageId is provided, uses cache to avoid re-decoding
- * If dataUrl is not provided, MUST have cached bitmap
+ * If dataUrl is not provided, reads from IndexedDB
  */
 async function loadImageBitmap(
   dataUrl: string | undefined,
@@ -103,13 +146,20 @@ async function loadImageBitmap(
     }
   }
 
-  // If no dataUrl and no cache, we can't proceed
-  if (!dataUrl) {
-    throw new Error(`No cached bitmap for imageId: ${imageId}`);
+  // If no dataUrl provided, try to read from IndexedDB
+  let resolvedDataUrl = dataUrl;
+  if (!resolvedDataUrl && imageId) {
+    resolvedDataUrl = await getImageDataUrlFromDB(imageId);
+  }
+
+  if (!resolvedDataUrl) {
+    throw new Error(
+      `No data URL and no IndexedDB entry for imageId: ${imageId}`,
+    );
   }
 
   // Load and decode the image
-  const response = await fetch(dataUrl);
+  const response = await fetch(resolvedDataUrl);
   const blob = await response.blob();
   const bitmap = await createImageBitmap(blob);
 
