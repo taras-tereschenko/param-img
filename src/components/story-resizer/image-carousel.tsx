@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -29,7 +29,11 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty";
 import { useCanvasWorker } from "@/lib/use-canvas-worker";
+import { useThrottle } from "@/lib/use-throttle";
 import { cn } from "@/lib/utils";
+
+// Throttle interval for slider values (100ms = 10 FPS)
+const THROTTLE_INTERVAL = 100;
 
 interface ImageCarouselProps {
   images: Array<ProcessedImage>;
@@ -103,6 +107,10 @@ const PreviewItem = memo(function PreviewItem({
   const currentQualityRef = useRef(-1);
   const { process } = useCanvasWorker();
 
+  // Throttle slider values to reduce processing during rapid changes (10 FPS)
+  const throttledBlurRadius = useThrottle(blurRadius, THROTTLE_INTERVAL);
+  const throttledScale = useThrottle(scale, THROTTLE_INTERVAL);
+
   useEffect(() => {
     // PERFORMANCE OPTIMIZATION: Skip processing for inactive items that already have a preview.
     // When the item becomes active (isActive changes), the effect will re-run automatically
@@ -129,10 +137,10 @@ const PreviewItem = memo(function PreviewItem({
             imageDataUrl: image.originalDataUrl,
             backgroundType: background,
             customColor,
-            scale,
+            scale: throttledScale,
             ambientBase,
             ambientCustomColor,
-            blurRadius,
+            blurRadius: throttledBlurRadius,
             borderRadius,
             maxSize,
           },
@@ -179,8 +187,8 @@ const PreviewItem = memo(function PreviewItem({
     customColor,
     ambientBase,
     ambientCustomColor,
-    blurRadius,
-    scale,
+    throttledBlurRadius,
+    throttledScale,
     borderRadius,
     isActive,
   ]);
