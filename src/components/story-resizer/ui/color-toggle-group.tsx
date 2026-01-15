@@ -151,11 +151,7 @@ export function ColorToggleGroup({
             <span className="text-xs font-medium">Pick</span>
           </ToggleGroupItem>
         ) : (
-          <ToggleGroupItem
-            value="custom"
-            disabled
-            className={itemClassName}
-          >
+          <ToggleGroupItem value="custom" disabled className={itemClassName}>
             <div className={containerClasses}>
               <HugeiconsIcon
                 icon={ColorPickerIcon}

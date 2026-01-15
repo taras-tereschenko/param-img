@@ -104,6 +104,13 @@ const PreviewItem = memo(function PreviewItem({
   const { process } = useCanvasWorker();
 
   useEffect(() => {
+    // PERFORMANCE OPTIMIZATION: Skip processing for inactive items that already have a preview.
+    // When the item becomes active (isActive changes), the effect will re-run automatically
+    // because isActive is in the dependency array.
+    if (!isActive && processedUrl) {
+      return;
+    }
+
     // Reset quality tracking for new render cycle
     currentQualityRef.current = -1;
     const cancellers: Array<() => void> = [];
