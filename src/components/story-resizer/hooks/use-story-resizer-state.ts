@@ -6,8 +6,8 @@ import type {
   ProcessedImage,
 } from "@/lib/types";
 import {
-  DEFAULT_AMBIENT_BLUR_RADIUS,
-  DEFAULT_BLUR_RADIUS,
+  DEFAULT_AMBIENT_BLUR_PERCENT,
+  DEFAULT_BLUR_PERCENT,
   DEFAULT_BORDER_RADIUS,
   DEFAULT_SCALE,
 } from "@/lib/types";
@@ -18,8 +18,8 @@ interface State {
   customColor: string | null;
   ambientBase: AmbientBaseType;
   ambientCustomColor: string | null;
-  blurRadius: number;
-  ambientBlurRadius: number;
+  blurPercent: number;
+  ambientBlurPercent: number;
   scale: number;
   borderRadius: BorderRadiusOption;
 }
@@ -31,8 +31,8 @@ type Action =
   | { type: "SET_CUSTOM_COLOR"; color: string | null }
   | { type: "SET_AMBIENT_BASE"; ambientBase: AmbientBaseType }
   | { type: "SET_AMBIENT_CUSTOM_COLOR"; color: string | null }
-  | { type: "SET_BLUR_RADIUS"; blurRadius: number }
-  | { type: "SET_AMBIENT_BLUR_RADIUS"; ambientBlurRadius: number }
+  | { type: "SET_BLUR_PERCENT"; blurPercent: number }
+  | { type: "SET_AMBIENT_BLUR_PERCENT"; ambientBlurPercent: number }
   | { type: "SET_SCALE"; scale: number }
   | { type: "SET_BORDER_RADIUS"; borderRadius: BorderRadiusOption }
   | { type: "CLEAR_ALL" };
@@ -54,10 +54,10 @@ function reducer(state: State, action: Action): State {
       return { ...state, ambientBase: action.ambientBase };
     case "SET_AMBIENT_CUSTOM_COLOR":
       return { ...state, ambientCustomColor: action.color };
-    case "SET_BLUR_RADIUS":
-      return { ...state, blurRadius: action.blurRadius };
-    case "SET_AMBIENT_BLUR_RADIUS":
-      return { ...state, ambientBlurRadius: action.ambientBlurRadius };
+    case "SET_BLUR_PERCENT":
+      return { ...state, blurPercent: action.blurPercent };
+    case "SET_AMBIENT_BLUR_PERCENT":
+      return { ...state, ambientBlurPercent: action.ambientBlurPercent };
     case "SET_SCALE":
       return { ...state, scale: action.scale };
     case "SET_BORDER_RADIUS":
@@ -80,8 +80,8 @@ const initialState: State = {
   customColor: null,
   ambientBase: "black",
   ambientCustomColor: null,
-  blurRadius: DEFAULT_BLUR_RADIUS,
-  ambientBlurRadius: DEFAULT_AMBIENT_BLUR_RADIUS,
+  blurPercent: DEFAULT_BLUR_PERCENT,
+  ambientBlurPercent: DEFAULT_AMBIENT_BLUR_PERCENT,
   scale: DEFAULT_SCALE,
   borderRadius: DEFAULT_BORDER_RADIUS,
 };
@@ -95,25 +95,25 @@ export function useStoryResizerState() {
     customColor,
     ambientBase,
     ambientCustomColor,
-    blurRadius,
-    ambientBlurRadius,
+    blurPercent,
+    ambientBlurPercent,
     scale,
     borderRadius,
   } = state;
 
   // Derived values
-  const activeBlurRadius =
-    background === "ambient" ? ambientBlurRadius : blurRadius;
+  const activeBlurPercent =
+    background === "ambient" ? ambientBlurPercent : blurPercent;
 
   const hasImages = images.length > 0;
 
-  const activeAction = useMemo(() => {
+  const activeAction = useMemo((): "blur" | "ambient" | "color" => {
     if (background === "blur") return "blur";
     if (background === "ambient") return "ambient";
     return "color";
   }, [background]);
 
-  const colorSheetSelection = useMemo(() => {
+  const colorSheetSelection = useMemo((): "black" | "white" | "custom" => {
     if (background === "black") return "black";
     if (background === "white") return "white";
     if (background === "custom") return "custom";
@@ -145,12 +145,12 @@ export function useStoryResizerState() {
     dispatch({ type: "SET_AMBIENT_CUSTOM_COLOR", color });
   }, []);
 
-  const setBlurRadius = useCallback((radius: number) => {
-    dispatch({ type: "SET_BLUR_RADIUS", blurRadius: radius });
+  const setBlurPercent = useCallback((percent: number) => {
+    dispatch({ type: "SET_BLUR_PERCENT", blurPercent: percent });
   }, []);
 
-  const setAmbientBlurRadius = useCallback((radius: number) => {
-    dispatch({ type: "SET_AMBIENT_BLUR_RADIUS", ambientBlurRadius: radius });
+  const setAmbientBlurPercent = useCallback((percent: number) => {
+    dispatch({ type: "SET_AMBIENT_BLUR_PERCENT", ambientBlurPercent: percent });
   }, []);
 
   const setScale = useCallback((newScale: number) => {
@@ -168,12 +168,12 @@ export function useStoryResizerState() {
     customColor,
     ambientBase,
     ambientCustomColor,
-    blurRadius,
-    ambientBlurRadius,
+    blurPercent,
+    ambientBlurPercent,
     scale,
     borderRadius,
     // Derived values
-    activeBlurRadius,
+    activeBlurPercent,
     hasImages,
     activeAction,
     colorSheetSelection,
@@ -184,8 +184,8 @@ export function useStoryResizerState() {
     setCustomColor,
     setAmbientBase,
     setAmbientCustomColor,
-    setBlurRadius,
-    setAmbientBlurRadius,
+    setBlurPercent,
+    setAmbientBlurPercent,
     setScale,
     setBorderRadius,
   };

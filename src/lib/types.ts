@@ -12,6 +12,8 @@ export interface ProcessedImage {
   scale: number;
   status: "pending" | "processing" | "ready" | "error";
   error?: string;
+  naturalWidth: number;
+  naturalHeight: number;
 }
 
 // Instagram Story aspect ratio: 9:21 (width:height) - taller for modern phone displays
@@ -34,14 +36,15 @@ export const DEFAULT_SCALE = 1;
 export const MIN_SCALE = 0.5;
 export const MAX_SCALE = 1;
 
-// Blur radius range (in pixels)
-export const DEFAULT_BLUR_RADIUS = 100;
-export const MIN_BLUR_RADIUS = 0;
-export const MAX_BLUR_RADIUS = 500;
+// Blur percentage range (as percentage of shorter image dimension)
+// This ensures consistent visual blur regardless of image resolution
+export const DEFAULT_BLUR_PERCENT = 5;
+export const MIN_BLUR_PERCENT = 0;
+export const MAX_BLUR_PERCENT = 25;
 
-// Ambient mode blur radius (separate from blur mode)
-export const DEFAULT_AMBIENT_BLUR_RADIUS = 400;
-export const MAX_AMBIENT_BLUR_RADIUS = 1000;
+// Ambient mode blur percentage (separate from blur mode)
+export const DEFAULT_AMBIENT_BLUR_PERCENT = 20;
+export const MAX_AMBIENT_BLUR_PERCENT = 50;
 
 // Border radius options (as percentage of shorter image dimension)
 export type BorderRadiusOption = 0 | 1 | 2 | 3;

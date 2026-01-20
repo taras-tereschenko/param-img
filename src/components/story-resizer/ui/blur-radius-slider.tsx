@@ -1,7 +1,7 @@
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 
-interface BlurRadiusSliderProps {
+interface BlurSliderProps {
   value: number;
   onChange: (value: number) => void;
   min: number;
@@ -12,21 +12,21 @@ interface BlurRadiusSliderProps {
   maxLabel?: string;
 }
 
-export function BlurRadiusSlider({
+export function BlurSlider({
   value,
   onChange,
   min,
   max,
-  step = 10,
-  label = "Blur Radius",
+  step = 1,
+  label = "Blur",
   minLabel = "Sharp",
   maxLabel = "Blurry",
-}: BlurRadiusSliderProps) {
+}: BlurSliderProps) {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <Label className="text-xs">{label}</Label>
-        <span className="text-xs text-muted-foreground">{value}px</span>
+        <span className="text-xs text-muted-foreground">{value}%</span>
       </div>
       <Slider
         value={[value]}
@@ -45,3 +45,6 @@ export function BlurRadiusSlider({
     </div>
   );
 }
+
+// Keep the old export name for backwards compatibility during refactor
+export { BlurSlider as BlurRadiusSlider };

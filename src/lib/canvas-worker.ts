@@ -1,19 +1,15 @@
 /**
- * Canvas Worker - Processes images for Instagram Story format using OffscreenCanvas
+ * Canvas Worker - Processes images for Instagram Story format using Canvas 2D API
  *
- * This runs in a Web Worker to keep the main thread responsive during heavy
- * canvas operations like blur filters and JPEG encoding.
+ * Uses native CSS filter: blur() equivalent on OffscreenCanvas.
+ * Runs in a Web Worker to keep main thread responsive during export.
  */
 
-import { DEFAULT_BLUR_RADIUS } from "./types";
 import {
-  calculateCanvasDimensions,
-  drawAmbientBackground,
-  drawBlurredBackground,
-  drawRoundedRect,
-  drawSolidBackground,
-  getBorderRadiusPixels,
-} from "./canvas-core";
+  BORDER_RADIUS_OPTIONS,
+  DEFAULT_BLUR_PERCENT,
+  STORY_ASPECT_RATIO,
+} from "./types";
 import type {
   AmbientBaseType,
   BackgroundType,
@@ -22,16 +18,16 @@ import type {
 
 export interface ProcessRequest {
   id: string;
-  imageId?: string; // Unique ID for caching ImageBitmap
-  imageDataUrl?: string; // Optional if imageId is cached
+  imageId?: string;
+  imageDataUrl?: string;
   backgroundType: BackgroundType;
   customColor: string | null;
   scale: number;
   ambientBase?: AmbientBaseType;
   ambientCustomColor?: string | null;
-  blurRadius?: number;
+  blurPercent?: number;
   borderRadius?: BorderRadiusOption;
-  maxSize?: number | null; // null or undefined = full resolution
+  maxSize?: number | null;
 }
 
 export interface ClearCacheRequest {
@@ -41,7 +37,17 @@ export interface ClearCacheRequest {
 
 export type WorkerRequest = ProcessRequest | ClearCacheRequest;
 
-// Cache for decoded ImageBitmaps to avoid re-decoding on settings changes
+export interface ProcessResponse {
+  id: string;
+  blob: Blob;
+}
+
+export interface ProcessError {
+  id: string;
+  error: string;
+}
+
+// Cache for decoded ImageBitmaps
 const imageBitmapCache = new Map<string, ImageBitmap>();
 
 // IndexedDB config - must match image-storage.ts
@@ -87,58 +93,13 @@ async function getImageDataUrlFromDB(
   });
 }
 
-export interface ProcessResponse {
-  id: string;
-  blob: Blob;
-}
-
-export interface ProcessError {
-  id: string;
-  error: string;
-}
-
-/**
- * Draw the background based on the selected type
- */
-function drawBackground(
-  ctx: OffscreenCanvasRenderingContext2D,
-  canvas: OffscreenCanvas,
-  img: ImageBitmap,
-  backgroundType: BackgroundType,
-  customColor?: string | null,
-  blurRadius?: number,
-): void {
-  switch (backgroundType) {
-    case "blur":
-      drawBlurredBackground(
-        ctx,
-        canvas,
-        img,
-        blurRadius ?? DEFAULT_BLUR_RADIUS,
-      );
-      break;
-    case "black":
-      drawSolidBackground(ctx, canvas, "#000000");
-      break;
-    case "white":
-      drawSolidBackground(ctx, canvas, "#ffffff");
-      break;
-    case "custom":
-      drawSolidBackground(ctx, canvas, customColor || "#000000");
-      break;
-  }
-}
-
 /**
  * Load an image from a data URL using createImageBitmap
- * If imageId is provided, uses cache to avoid re-decoding
- * If dataUrl is not provided, reads from IndexedDB
  */
 async function loadImageBitmap(
   dataUrl: string | undefined,
   imageId?: string,
 ): Promise<ImageBitmap> {
-  // Check cache first
   if (imageId) {
     const cached = imageBitmapCache.get(imageId);
     if (cached) {
@@ -146,7 +107,6 @@ async function loadImageBitmap(
     }
   }
 
-  // If no dataUrl provided, try to read from IndexedDB
   let resolvedDataUrl = dataUrl;
   if (!resolvedDataUrl && imageId) {
     resolvedDataUrl = await getImageDataUrlFromDB(imageId);
@@ -158,12 +118,10 @@ async function loadImageBitmap(
     );
   }
 
-  // Load and decode the image
   const response = await fetch(resolvedDataUrl);
   const blob = await response.blob();
   const bitmap = await createImageBitmap(blob);
 
-  // Cache if imageId provided
   if (imageId) {
     imageBitmapCache.set(imageId, bitmap);
   }
@@ -172,7 +130,83 @@ async function loadImageBitmap(
 }
 
 /**
- * Process an image for Instagram Story format
+ * Calculate canvas dimensions for 9:21 aspect ratio
+ */
+function calculateCanvasDimensions(
+  srcWidth: number,
+  srcHeight: number,
+): { width: number; height: number } {
+  const srcRatio = srcWidth / srcHeight;
+
+  if (srcRatio > STORY_ASPECT_RATIO) {
+    return {
+      width: srcWidth,
+      height: Math.round(srcWidth / STORY_ASPECT_RATIO),
+    };
+  } else {
+    return {
+      width: Math.round(srcHeight * STORY_ASPECT_RATIO),
+      height: srcHeight,
+    };
+  }
+}
+
+/**
+ * Calculate border radius in pixels
+ */
+function getBorderRadiusPixels(
+  option: BorderRadiusOption,
+  imageWidth: number,
+  imageHeight: number,
+): number {
+  const radiusOption = BORDER_RADIUS_OPTIONS.find(
+    (opt) => opt.value === option,
+  );
+  if (!radiusOption || radiusOption.percent === 0) return 0;
+
+  const shorterSide = Math.min(imageWidth, imageHeight);
+  return Math.round(shorterSide * (radiusOption.percent / 100));
+}
+
+/**
+ * Calculate blur radius in pixels from percentage
+ * Uses the shorter dimension of the image for consistent visual blur
+ */
+function getBlurPixels(
+  blurPercent: number,
+  imageWidth: number,
+  imageHeight: number,
+): number {
+  const shorterSide = Math.min(imageWidth, imageHeight);
+  return Math.round((blurPercent / 100) * shorterSide);
+}
+
+/**
+ * Draw a rounded rectangle path
+ */
+function drawRoundedRect(
+  ctx: OffscreenCanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
+): void {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+}
+
+/**
+ * Process an image using Canvas 2D API
  */
 async function processImageForStory(
   imageDataUrl: string | undefined,
@@ -181,7 +215,7 @@ async function processImageForStory(
   scale: number,
   ambientBase?: AmbientBaseType,
   ambientCustomColor?: string | null,
-  blurRadius?: number,
+  blurPercent?: number,
   borderRadius?: BorderRadiusOption,
   maxSize?: number | null,
   imageId?: string,
@@ -199,61 +233,77 @@ async function processImageForStory(
   }
 
   // Apply size scaling to base dimensions
-  const baseWidth = Math.round(img.width * sizeScale);
-  const baseHeight = Math.round(img.height * sizeScale);
+  const imageWidth = Math.round(img.width * sizeScale);
+  const imageHeight = Math.round(img.height * sizeScale);
 
   const { width: canvasWidth, height: canvasHeight } =
-    calculateCanvasDimensions(baseWidth, baseHeight);
+    calculateCanvasDimensions(imageWidth, imageHeight);
 
+  // Calculate blur pixels from percentage based on image dimensions
+  const effectiveBlurPercent = blurPercent ?? DEFAULT_BLUR_PERCENT;
+  const blurPixels = getBlurPixels(effectiveBlurPercent, imageWidth, imageHeight);
+
+  // Create OffscreenCanvas with 2D context
   const canvas = new OffscreenCanvas(canvasWidth, canvasHeight);
   const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Failed to get 2D context");
 
-  if (!ctx) {
-    throw new Error("Failed to get canvas context");
-  }
-
-  const drawWidth = baseWidth * scale;
-  const drawHeight = baseHeight * scale;
-
-  // Scale blur radius proportionally when downscaling
-  const adjustedBlurRadius =
-    sizeScale < 1 && blurRadius
-      ? Math.round(blurRadius * sizeScale)
-      : blurRadius;
+  // Calculate foreground dimensions
+  const drawWidth = imageWidth * scale;
+  const drawHeight = imageHeight * scale;
   const x = (canvasWidth - drawWidth) / 2;
   const y = (canvasHeight - drawHeight) / 2;
 
-  // Draw background
-  if (backgroundType === "ambient") {
+  // Draw background based on type
+  if (backgroundType === "blur") {
+    // Calculate background cover dimensions
+    const bgScale = Math.max(
+      canvasWidth / imageWidth,
+      canvasHeight / imageHeight,
+    );
+    const bgWidth = imageWidth * bgScale;
+    const bgHeight = imageHeight * bgScale;
+    const bgX = (canvasWidth - bgWidth) / 2;
+    const bgY = (canvasHeight - bgHeight) / 2;
+
+    // Draw blurred background
+    ctx.filter = `blur(${blurPixels}px)`;
+    ctx.drawImage(img, bgX, bgY, bgWidth, bgHeight);
+    ctx.filter = "none";
+
+    // Darkening overlay
+    ctx.fillStyle = "rgba(0, 0, 0, 0.15)";
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+  } else if (backgroundType === "ambient") {
+    // Draw base color
     let baseColor = "#000000";
     if (ambientBase === "white") {
       baseColor = "#ffffff";
     } else if (ambientBase === "custom" && ambientCustomColor) {
       baseColor = ambientCustomColor;
     }
-    drawAmbientBackground(
-      ctx,
-      canvas,
-      img,
-      baseColor,
-      x,
-      y,
-      drawWidth,
-      drawHeight,
-      adjustedBlurRadius ?? DEFAULT_BLUR_RADIUS,
-    );
+
+    ctx.fillStyle = baseColor;
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+    // Draw blurred image at foreground position
+    ctx.filter = `blur(${blurPixels}px)`;
+    ctx.drawImage(img, x, y, drawWidth, drawHeight);
+    ctx.filter = "none";
   } else {
-    drawBackground(
-      ctx,
-      canvas,
-      img,
-      backgroundType,
-      customColor,
-      adjustedBlurRadius,
-    );
+    // Solid color backgrounds
+    let bgColor = "#000000";
+    if (backgroundType === "white") {
+      bgColor = "#ffffff";
+    } else if (backgroundType === "custom" && customColor) {
+      bgColor = customColor;
+    }
+
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
   }
 
-  // Draw the original image centered and scaled with optional rounded corners
+  // Draw foreground with border radius
   const radiusPixels = getBorderRadiusPixels(
     borderRadius ?? 0,
     drawWidth,
@@ -270,12 +320,14 @@ async function processImageForStory(
     ctx.drawImage(img, x, y, drawWidth, drawHeight);
   }
 
-  // Close the ImageBitmap to free memory (but not if cached for reuse)
+  // Convert to blob
+  const blob = await canvas.convertToBlob({ type: "image/png" });
+
   if (!isCached) {
     img.close();
   }
 
-  return canvas.convertToBlob({ type: "image/png" });
+  return blob;
 }
 
 // Worker message handler
@@ -302,7 +354,7 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
     scale,
     ambientBase,
     ambientCustomColor,
-    blurRadius,
+    blurPercent,
     borderRadius,
     maxSize,
   } = data;
@@ -315,13 +367,12 @@ self.onmessage = async (e: MessageEvent<WorkerRequest>) => {
       scale,
       ambientBase,
       ambientCustomColor,
-      blurRadius,
+      blurPercent,
       borderRadius,
       maxSize,
       imageId,
     );
 
-    // Transfer the blob back to main thread
     self.postMessage({ id, blob } as ProcessResponse);
   } catch (error) {
     self.postMessage({

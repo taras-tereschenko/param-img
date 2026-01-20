@@ -5,12 +5,6 @@ import {
 } from "@hugeicons/core-free-icons";
 import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
 
 // EyeDropper API type declaration (not yet in standard TypeScript lib)
 declare global {

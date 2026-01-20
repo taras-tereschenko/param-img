@@ -3,11 +3,7 @@
  * and OffscreenCanvasRenderingContext2D
  */
 
-import {
-  BORDER_RADIUS_OPTIONS,
-  DEFAULT_BLUR_RADIUS,
-  STORY_ASPECT_RATIO,
-} from "./types";
+import { BORDER_RADIUS_OPTIONS, STORY_ASPECT_RATIO } from "./types";
 import type { BorderRadiusOption } from "./types";
 
 // Common canvas type that works with both contexts
@@ -94,7 +90,7 @@ export function drawBlurredBackground(
   ctx: CanvasContext,
   canvas: Canvas,
   img: ImageSource,
-  blurRadius: number = DEFAULT_BLUR_RADIUS,
+  blurRadius: number,
 ): void {
   const scale = Math.max(canvas.width / img.width, canvas.height / img.height);
   const scaledWidth = img.width * scale;
@@ -135,7 +131,7 @@ export function drawAmbientBackground(
   imageY: number,
   imageWidth: number,
   imageHeight: number,
-  blurRadius: number = DEFAULT_BLUR_RADIUS,
+  blurRadius: number,
 ): void {
   ctx.fillStyle = baseColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);

@@ -38,11 +38,11 @@ export function StoryResizer() {
     customColor,
     ambientBase,
     ambientCustomColor,
-    blurRadius,
-    ambientBlurRadius,
+    blurPercent,
+    ambientBlurPercent,
     scale,
     borderRadius,
-    activeBlurRadius,
+    activeBlurPercent,
     hasImages,
     activeAction,
     colorSheetSelection,
@@ -52,8 +52,8 @@ export function StoryResizer() {
     setCustomColor,
     setAmbientBase,
     setAmbientCustomColor,
-    setBlurRadius,
-    setAmbientBlurRadius,
+    setBlurPercent,
+    setAmbientBlurPercent,
     setScale,
     setBorderRadius,
   } = useStoryResizerState();
@@ -80,7 +80,7 @@ export function StoryResizer() {
     scale,
     ambientBase,
     ambientCustomColor,
-    activeBlurRadius,
+    activeBlurPercent,
     borderRadius,
   });
 
@@ -123,12 +123,12 @@ export function StoryResizer() {
   );
 
   // Blur panel handlers
-  const handleBlurPanelRadiusChange = useCallback(
-    (radius: number) => {
-      setBlurRadius(radius);
+  const handleBlurPercentChange = useCallback(
+    (percent: number) => {
+      setBlurPercent(percent);
       setBackground("blur");
     },
-    [setBlurRadius, setBackground],
+    [setBlurPercent, setBackground],
   );
 
   // Ambient handlers
@@ -148,12 +148,12 @@ export function StoryResizer() {
     [setAmbientCustomColor, setBackground],
   );
 
-  const handleAmbientBlurRadiusChange = useCallback(
-    (radius: number) => {
-      setAmbientBlurRadius(radius);
+  const handleAmbientBlurPercentChange = useCallback(
+    (percent: number) => {
+      setAmbientBlurPercent(percent);
       setBackground("ambient");
     },
-    [setAmbientBlurRadius, setBackground],
+    [setAmbientBlurPercent, setBackground],
   );
 
   // Color handlers
@@ -173,7 +173,7 @@ export function StoryResizer() {
   );
 
   return (
-    <div className="flex h-[100dvh] flex-col items-center justify-center bg-muted/30 md:p-8">
+    <div className="flex h-svh flex-col items-center justify-center bg-muted/30 md:p-8">
       {/* Centered container for desktop */}
       <div className="flex h-full w-full flex-col bg-background shadow-none md:aspect-[1/2] md:w-auto md:overflow-hidden md:rounded-2xl md:shadow-xl">
         {/* Header */}
@@ -245,7 +245,7 @@ export function StoryResizer() {
             customColor={customColor}
             ambientBase={ambientBase}
             ambientCustomColor={ambientCustomColor}
-            blurRadius={activeBlurRadius}
+            blurPercent={activeBlurPercent}
             scale={scale}
             borderRadius={borderRadius}
             onFilesAdded={handleFilesAdded}
@@ -264,18 +264,18 @@ export function StoryResizer() {
             />
           ) : activeSheet === "blur" ? (
             <BlurPanel
-              blurRadius={blurRadius}
-              onBlurRadiusChange={handleBlurPanelRadiusChange}
+              blurPercent={blurPercent}
+              onBlurPercentChange={handleBlurPercentChange}
               onBack={closePanel}
             />
           ) : activeSheet === "ambient" ? (
             <AmbientPanel
               ambientBase={ambientBase}
               ambientCustomColor={ambientCustomColor}
-              blurRadius={ambientBlurRadius}
+              blurPercent={ambientBlurPercent}
               onAmbientBaseChange={handleAmbientBaseChange}
               onAmbientCustomColorChange={handleAmbientCustomColorChange}
-              onBlurRadiusChange={handleAmbientBlurRadiusChange}
+              onBlurPercentChange={handleAmbientBlurPercentChange}
               onBack={closePanel}
             />
           ) : activeSheet === "color" ? (

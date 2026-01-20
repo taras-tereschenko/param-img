@@ -5,6 +5,21 @@ import { DEFAULT_SCALE } from "@/lib/types";
 import { loadImages, saveImages } from "@/lib/image-storage";
 import { hasSharedContent } from "@/lib/share-target";
 
+/**
+ * Load image dimensions from a data URL
+ */
+async function loadImageDimensions(
+  dataUrl: string,
+): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () =>
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
+
 interface UseImagePersistenceOptions {
   images: Array<ProcessedImage>;
   onImagesLoaded: (images: Array<ProcessedImage>) => void;
@@ -28,9 +43,12 @@ export function useImagePersistence({
       try {
         const storedImages = await loadImages();
         if (storedImages.length > 0) {
-          const restoredImages = storedImages.map(
-            (stored: StoredImage) =>
-              ({
+          const restoredImages = await Promise.all(
+            storedImages.map(async (stored: StoredImage) => {
+              const { width, height } = await loadImageDimensions(
+                stored.originalDataUrl,
+              );
+              return {
                 id: stored.id,
                 originalFile: stored.originalFile,
                 originalDataUrl: stored.originalDataUrl,
@@ -39,7 +57,10 @@ export function useImagePersistence({
                 customColor: null,
                 scale: DEFAULT_SCALE,
                 status: "pending",
-              }) satisfies ProcessedImage,
+                naturalWidth: width,
+                naturalHeight: height,
+              } satisfies ProcessedImage;
+            }),
           );
           onImagesLoaded(restoredImages);
         }

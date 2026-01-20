@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
@@ -7,6 +7,7 @@ import {
   Delete02Icon,
   DownloadCircle02Icon,
 } from "@hugeicons/core-free-icons";
+import { CSSPreview } from "./css-preview";
 import type {
   AmbientBaseType,
   BackgroundType,
@@ -28,12 +29,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { clearImageCache, useCanvasWorker } from "@/lib/use-canvas-worker";
-import { useThrottle } from "@/lib/use-throttle";
 import { cn } from "@/lib/utils";
-
-// Throttle interval for slider values (100ms = 10 FPS)
-const THROTTLE_INTERVAL = 100;
 
 interface ImageCarouselProps {
   images: Array<ProcessedImage>;
@@ -41,12 +37,12 @@ interface ImageCarouselProps {
   customColor: string | null;
   ambientBase: AmbientBaseType;
   ambientCustomColor: string | null;
-  blurRadius: number;
+  blurPercent: number;
   scale: number;
   borderRadius: BorderRadiusOption;
   onFilesAdded: (files: Array<File>) => void;
   onRemoveImage: (id: string) => void;
-  onDownloadImage: (processedUrl: string, filename: string) => void;
+  onDownloadImage: (image: ProcessedImage) => void;
 }
 
 interface PreviewItemProps {
@@ -55,35 +51,16 @@ interface PreviewItemProps {
   customColor: string | null;
   ambientBase: AmbientBaseType;
   ambientCustomColor: string | null;
-  blurRadius: number;
+  blurPercent: number;
   scale: number;
   borderRadius: BorderRadiusOption;
   onRemove: () => void;
-  onDownload: (processedUrl: string) => void;
+  onDownload: () => void;
   onPrev?: () => void;
   onNext?: () => void;
   canScrollPrev?: boolean;
   canScrollNext?: boolean;
-  isActive?: boolean;
 }
-
-// Progressive resolution steps with delays (null = full resolution)
-// Active (visible) items get full quality, inactive get preview only
-const ACTIVE_RESOLUTION_STEPS: Array<{
-  maxSize: number | null;
-  delay: number;
-}> = [
-  { maxSize: 50, delay: 0 }, // Instant tiny preview
-  { maxSize: 200, delay: 100 }, // Medium after 100ms
-  { maxSize: null, delay: 300 }, // Full resolution after 300ms
-];
-
-const INACTIVE_RESOLUTION_STEPS: Array<{
-  maxSize: number | null;
-  delay: number;
-}> = [
-  { maxSize: 50, delay: 0 }, // Only tiny preview for inactive items
-];
 
 const PreviewItem = memo(function PreviewItem({
   image,
@@ -91,7 +68,7 @@ const PreviewItem = memo(function PreviewItem({
   customColor,
   ambientBase,
   ambientCustomColor,
-  blurRadius,
+  blurPercent,
   scale,
   borderRadius,
   onRemove,
@@ -100,127 +77,29 @@ const PreviewItem = memo(function PreviewItem({
   onNext,
   canScrollPrev,
   canScrollNext,
-  isActive = true,
 }: PreviewItemProps) {
-  const [processedUrl, setProcessedUrl] = useState<string | null>(null);
-  const previousUrlsRef = useRef<Array<string>>([]);
-  const currentQualityRef = useRef(-1);
-  const { process } = useCanvasWorker();
-
-  // Throttle slider values to reduce processing during rapid changes (10 FPS)
-  const throttledBlurRadius = useThrottle(blurRadius, THROTTLE_INTERVAL);
-  const throttledScale = useThrottle(scale, THROTTLE_INTERVAL);
-
-  useEffect(() => {
-    // PERFORMANCE OPTIMIZATION: Skip processing for inactive items that already have a preview.
-    // When the item becomes active (isActive changes), the effect will re-run automatically
-    // because isActive is in the dependency array.
-    if (!isActive && processedUrl) {
-      return;
-    }
-
-    // Reset quality tracking for new render cycle
-    currentQualityRef.current = -1;
-    const cancellers: Array<() => void> = [];
-    const timeouts: Array<ReturnType<typeof setTimeout>> = [];
-
-    // Use different resolution steps based on visibility
-    const steps = isActive
-      ? ACTIVE_RESOLUTION_STEPS
-      : INACTIVE_RESOLUTION_STEPS;
-
-    // Fire off requests with appropriate delays
-    steps.forEach(({ maxSize, delay }, qualityIndex) => {
-      const fireRequest = () => {
-        const cancel = process(
-          {
-            imageId: image.id,
-            imageDataUrl: image.originalDataUrl,
-            backgroundType: background,
-            customColor,
-            scale: throttledScale,
-            ambientBase,
-            ambientCustomColor,
-            blurRadius: throttledBlurRadius,
-            borderRadius,
-            maxSize,
-          },
-          (url) => {
-            // Only update if this is higher quality than what we currently have
-            if (qualityIndex > currentQualityRef.current) {
-              // Revoke all previous URLs
-              previousUrlsRef.current.forEach((oldUrl) => {
-                URL.revokeObjectURL(oldUrl);
-              });
-              previousUrlsRef.current = [url];
-              currentQualityRef.current = qualityIndex;
-              setProcessedUrl(url);
-            } else {
-              // This result is stale, revoke it
-              URL.revokeObjectURL(url);
-            }
-          },
-          (error) => {
-            console.error("Failed to process image:", error);
-          },
-        );
-        cancellers.push(cancel);
-      };
-
-      if (delay === 0) {
-        fireRequest();
-      } else {
-        const timeout = setTimeout(fireRequest, delay);
-        timeouts.push(timeout);
-      }
-    });
-
-    return () => {
-      // Clear pending timeouts (prevents higher-res requests if params change quickly)
-      timeouts.forEach((t) => clearTimeout(t));
-      // Cancel any in-flight requests
-      cancellers.forEach((cancel) => cancel());
-    };
-  }, [
-    process,
-    image.originalDataUrl,
-    background,
-    customColor,
-    ambientBase,
-    ambientCustomColor,
-    throttledBlurRadius,
-    throttledScale,
-    borderRadius,
-    isActive,
-  ]);
-
-  // Cleanup URLs and worker cache on unmount
-  useEffect(() => {
-    const imageId = image.id;
-    return () => {
-      previousUrlsRef.current.forEach((url) => {
-        URL.revokeObjectURL(url);
-      });
-      // Clear cached ImageBitmap in worker to free memory
-      clearImageCache(imageId);
-    };
-  }, [image.id]);
-
   return (
     <div className="flex h-full items-center justify-center">
       <div className="relative aspect-[9/21] h-full max-w-full overflow-hidden rounded-lg border">
-        {processedUrl && (
-          <img
-            src={processedUrl}
-            alt={`Preview of ${image.originalFile.name}`}
-            className="absolute inset-0 h-full w-full object-cover"
-          />
-        )}
+        {/* GPU-accelerated CSS preview */}
+        <CSSPreview
+          imageUrl={image.originalDataUrl}
+          naturalWidth={image.naturalWidth}
+          naturalHeight={image.naturalHeight}
+          background={background}
+          customColor={customColor}
+          ambientBase={ambientBase}
+          ambientCustomColor={ambientCustomColor}
+          blurPercent={blurPercent}
+          scale={scale}
+          borderRadius={borderRadius}
+          className="absolute inset-0 h-full w-full"
+        />
         {/* Overlay buttons - separated to prevent misclicks */}
         <Button
           size="icon-sm"
           variant="secondary"
-          className="absolute left-2 top-2 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
+          className="absolute left-2 top-2 z-10 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
           onClick={onRemove}
         >
           <HugeiconsIcon icon={Delete02Icon} strokeWidth={2} />
@@ -229,9 +108,8 @@ const PreviewItem = memo(function PreviewItem({
         <Button
           size="icon-sm"
           variant="secondary"
-          className="absolute right-2 top-2 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
-          onClick={() => processedUrl && onDownload(processedUrl)}
-          disabled={!processedUrl}
+          className="absolute right-2 top-2 z-10 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
+          onClick={onDownload}
         >
           <HugeiconsIcon icon={DownloadCircle02Icon} strokeWidth={2} />
           <span className="sr-only">Download</span>
@@ -241,7 +119,7 @@ const PreviewItem = memo(function PreviewItem({
           <Button
             size="icon-sm"
             variant="secondary"
-            className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
+            className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
             onClick={onPrev}
           >
             <svg
@@ -264,7 +142,7 @@ const PreviewItem = memo(function PreviewItem({
           <Button
             size="icon-sm"
             variant="secondary"
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
+            className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
             onClick={onNext}
           >
             <svg
@@ -396,7 +274,7 @@ export function ImageCarousel({
   customColor,
   ambientBase,
   ambientCustomColor,
-  blurRadius,
+  blurPercent,
   scale,
   borderRadius,
   onFilesAdded,
@@ -404,19 +282,20 @@ export function ImageCarousel({
   onDownloadImage,
 }: ImageCarouselProps) {
   const [api, setApi] = useState<CarouselApi>();
-  const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
 
   useEffect(() => {
     if (!api) return;
 
-    setCount(api.scrollSnapList().length);
-    setCurrent(api.selectedScrollSnap());
+    const updateCount = () => setCount(api.scrollSnapList().length);
 
-    api.on("select", () => {
-      setCurrent(api.selectedScrollSnap());
-    });
-  }, [api]);
+    updateCount();
+    api.on("reInit", updateCount);
+
+    return () => {
+      api.off("reInit", updateCount);
+    };
+  }, [api, images.length]);
 
   // Scroll to the add-more item when new images are added
   useEffect(() => {
@@ -441,7 +320,7 @@ export function ImageCarousel({
 
   return (
     <div
-      className={cn("flex h-full flex-col pt-4", count > 1 ? "pb-0" : "pb-4")}
+      className="flex h-full flex-col py-4"
     >
       {/* Wrapper to center carousel */}
       <div className="relative min-h-0 flex-1 overflow-hidden">
@@ -453,7 +332,7 @@ export function ImageCarousel({
           }}
         >
           <CarouselContent className="-ml-0">
-            {images.map((image, index) => (
+            {images.map((image) => (
               <CarouselItem key={image.id} className="pl-0">
                 <div className="h-full px-4">
                   <PreviewItem
@@ -462,18 +341,15 @@ export function ImageCarousel({
                     customColor={customColor}
                     ambientBase={ambientBase}
                     ambientCustomColor={ambientCustomColor}
-                    blurRadius={blurRadius}
+                    blurPercent={blurPercent}
                     scale={scale}
                     borderRadius={borderRadius}
                     onRemove={() => onRemoveImage(image.id)}
-                    onDownload={(url) =>
-                      onDownloadImage(url, image.originalFile.name)
-                    }
+                    onDownload={() => onDownloadImage(image)}
                     onPrev={count > 1 ? () => api?.scrollPrev() : undefined}
                     onNext={count > 1 ? () => api?.scrollNext() : undefined}
                     canScrollPrev={api?.canScrollPrev() ?? false}
                     canScrollNext={api?.canScrollNext() ?? false}
-                    isActive={index === current}
                   />
                 </div>
               </CarouselItem>
@@ -493,26 +369,6 @@ export function ImageCarousel({
         </Carousel>
       </div>
 
-      {/* Dot indicators */}
-      {count > 1 && (
-        <div className="flex justify-center gap-1.5 py-2">
-          {Array.from({ length: count }).map((_, index) => (
-            <button
-              key={index}
-              type="button"
-              onClick={() => api?.scrollTo(index)}
-              className={cn(
-                "size-2 rounded-full transition-all",
-                current === index
-                  ? "w-6 bg-primary"
-                  : "bg-muted-foreground/30 hover:bg-muted-foreground/50",
-              )}
-            >
-              <span className="sr-only">Go to slide {index + 1}</span>
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

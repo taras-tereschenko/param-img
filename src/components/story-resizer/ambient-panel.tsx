@@ -1,24 +1,24 @@
-import { BlurRadiusSlider, ColorToggleGroup, PanelLayout } from "./ui";
+import { BlurSlider, ColorToggleGroup, PanelLayout } from "./ui";
 import type { AmbientBaseType } from "@/lib/types";
-import { MAX_AMBIENT_BLUR_RADIUS, MIN_BLUR_RADIUS } from "@/lib/types";
+import { MAX_AMBIENT_BLUR_PERCENT, MIN_BLUR_PERCENT } from "@/lib/types";
 
 interface AmbientPanelProps {
   ambientBase: AmbientBaseType;
   ambientCustomColor: string | null;
-  blurRadius: number;
+  blurPercent: number;
   onAmbientBaseChange: (base: AmbientBaseType) => void;
   onAmbientCustomColorChange: (color: string | null) => void;
-  onBlurRadiusChange: (radius: number) => void;
+  onBlurPercentChange: (percent: number) => void;
   onBack: () => void;
 }
 
 export function AmbientPanel({
   ambientBase,
   ambientCustomColor,
-  blurRadius,
+  blurPercent,
   onAmbientBaseChange,
   onAmbientCustomColorChange,
-  onBlurRadiusChange,
+  onBlurPercentChange,
   onBack,
 }: AmbientPanelProps) {
   return (
@@ -35,11 +35,11 @@ export function AmbientPanel({
         previewSize="sm"
       />
 
-      <BlurRadiusSlider
-        value={blurRadius}
-        onChange={onBlurRadiusChange}
-        min={MIN_BLUR_RADIUS}
-        max={MAX_AMBIENT_BLUR_RADIUS}
+      <BlurSlider
+        value={blurPercent}
+        onChange={onBlurPercentChange}
+        min={MIN_BLUR_PERCENT}
+        max={MAX_AMBIENT_BLUR_PERCENT}
         label="Glow Spread"
         minLabel="Subtle"
         maxLabel="Diffused"

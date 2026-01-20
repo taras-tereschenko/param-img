@@ -14,7 +14,7 @@ export interface ProcessParams {
   scale: number;
   ambientBase?: AmbientBaseType;
   ambientCustomColor?: string | null;
-  blurRadius?: number;
+  blurPercent?: number;
   borderRadius?: BorderRadiusOption;
   maxSize?: number | null; // null or undefined = full resolution
 }

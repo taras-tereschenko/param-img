@@ -1,4 +1,4 @@
-import { DEFAULT_BLUR_RADIUS } from "./types";
+import { DEFAULT_BLUR_PERCENT } from "./types";
 import { loadImage } from "./image-utils";
 import {
   calculateCanvasDimensions,
@@ -18,6 +18,19 @@ import type {
 export { calculateCanvasDimensions };
 
 /**
+ * Calculate blur radius in pixels from percentage
+ * Uses the shorter dimension of the image for consistent visual blur
+ */
+function getBlurPixels(
+  blurPercent: number,
+  imageWidth: number,
+  imageHeight: number,
+): number {
+  const shorterSide = Math.min(imageWidth, imageHeight);
+  return Math.round((blurPercent / 100) * shorterSide);
+}
+
+/**
  * Draw the background based on the selected type
  */
 function drawBackground(
@@ -26,16 +39,11 @@ function drawBackground(
   img: HTMLImageElement,
   backgroundType: BackgroundType,
   customColor?: string | null,
-  blurRadius?: number,
+  blurPixels?: number,
 ): void {
   switch (backgroundType) {
     case "blur":
-      drawBlurredBackground(
-        ctx,
-        canvas,
-        img,
-        blurRadius ?? DEFAULT_BLUR_RADIUS,
-      );
+      drawBlurredBackground(ctx, canvas, img, blurPixels ?? 0);
       break;
     case "black":
       drawSolidBackground(ctx, canvas, "#000000");
@@ -59,7 +67,7 @@ export async function processImageForStory(
   scale: number,
   ambientBase?: AmbientBaseType,
   ambientCustomColor?: string | null,
-  blurRadius?: number,
+  blurPercent?: number,
   borderRadius?: BorderRadiusOption,
 ): Promise<string> {
   const img = await loadImage(imageDataUrl);
@@ -86,6 +94,10 @@ export async function processImageForStory(
   const x = (canvasWidth - drawWidth) / 2;
   const y = (canvasHeight - drawHeight) / 2;
 
+  // Calculate blur pixels from percentage
+  const effectiveBlurPercent = blurPercent ?? DEFAULT_BLUR_PERCENT;
+  const blurPixels = getBlurPixels(effectiveBlurPercent, img.width, img.height);
+
   // Draw background
   if (backgroundType === "ambient") {
     // Determine ambient base color
@@ -104,10 +116,10 @@ export async function processImageForStory(
       y,
       drawWidth,
       drawHeight,
-      blurRadius ?? DEFAULT_BLUR_RADIUS,
+      blurPixels,
     );
   } else {
-    drawBackground(ctx, canvas, img, backgroundType, customColor, blurRadius);
+    drawBackground(ctx, canvas, img, backgroundType, customColor, blurPixels);
   }
 
   // Draw the original image centered and scaled with optional rounded corners

@@ -14,7 +14,7 @@ interface ProcessingParams {
   scale: number;
   ambientBase: AmbientBaseType;
   ambientCustomColor: string | null;
-  activeBlurRadius: number;
+  activeBlurPercent: number;
   borderRadius: BorderRadiusOption;
 }
 
@@ -46,7 +46,7 @@ export function useImageExport(
         params.scale,
         params.ambientBase,
         params.ambientCustomColor,
-        params.activeBlurRadius,
+        params.activeBlurPercent,
         params.borderRadius,
       );
     },
@@ -81,11 +81,16 @@ export function useImageExport(
   }, [images, processImage]);
 
   const handleDownloadImage = useCallback(
-    (processedUrl: string, originalFilename: string) => {
-      const filename = createStoryFilename(originalFilename);
-      downloadDataUrl(processedUrl, filename);
+    async (image: ProcessedImage) => {
+      try {
+        const processedUrl = await processImage(image);
+        const filename = createStoryFilename(image.originalFile.name);
+        downloadDataUrl(processedUrl, filename);
+      } catch (error) {
+        console.error("Failed to download image:", error);
+      }
     },
-    [],
+    [processImage],
   );
 
   const handleShare = useCallback(async () => {
