@@ -19,6 +19,8 @@ import {
   Carousel,
   CarouselContent,
   CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,10 +58,6 @@ interface PreviewItemProps {
   borderRadius: BorderRadiusOption;
   onRemove: () => void;
   onDownload: () => void;
-  onPrev?: () => void;
-  onNext?: () => void;
-  canScrollPrev?: boolean;
-  canScrollNext?: boolean;
 }
 
 const PreviewItem = memo(function PreviewItem({
@@ -73,10 +71,6 @@ const PreviewItem = memo(function PreviewItem({
   borderRadius,
   onRemove,
   onDownload,
-  onPrev,
-  onNext,
-  canScrollPrev,
-  canScrollNext,
 }: PreviewItemProps) {
   return (
     <div className="flex h-full items-center justify-center">
@@ -95,7 +89,7 @@ const PreviewItem = memo(function PreviewItem({
           borderRadius={borderRadius}
           className="absolute inset-0 h-full w-full"
         />
-        {/* Overlay buttons - separated to prevent misclicks */}
+        {/* Overlay buttons */}
         <Button
           size="icon-sm"
           variant="secondary"
@@ -114,53 +108,6 @@ const PreviewItem = memo(function PreviewItem({
           <HugeiconsIcon icon={DownloadCircle02Icon} strokeWidth={2} />
           <span className="sr-only">Download</span>
         </Button>
-        {/* Navigation buttons - only show when can scroll in that direction */}
-        {onPrev && canScrollPrev && (
-          <Button
-            size="icon-sm"
-            variant="secondary"
-            className="absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
-            onClick={onPrev}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="m15 18-6-6 6-6" />
-            </svg>
-            <span className="sr-only">Previous</span>
-          </Button>
-        )}
-        {onNext && canScrollNext && (
-          <Button
-            size="icon-sm"
-            variant="secondary"
-            className="absolute right-2 top-1/2 z-10 -translate-y-1/2 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
-            onClick={onNext}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="m9 18 6-6-6-6" />
-            </svg>
-            <span className="sr-only">Next</span>
-          </Button>
-        )}
       </div>
     </div>
   );
@@ -169,16 +116,9 @@ const PreviewItem = memo(function PreviewItem({
 interface AddMoreItemProps {
   onFilesAdded: (files: Array<File>) => void;
   isOnlyItem: boolean;
-  onPrev?: () => void;
-  canScrollPrev?: boolean;
 }
 
-function AddMoreItem({
-  onFilesAdded,
-  isOnlyItem,
-  onPrev,
-  canScrollPrev,
-}: AddMoreItemProps) {
+function AddMoreItem({ onFilesAdded, isOnlyItem }: AddMoreItemProps) {
   const onDrop = useCallback(
     (acceptedFiles: Array<File>) => {
       onFilesAdded(acceptedFiles);
@@ -197,74 +137,45 @@ function AddMoreItem({
   });
 
   return (
-    <div className="relative h-full">
-      <Empty
-        {...getRootProps()}
-        className={cn(
-          "h-full cursor-pointer rounded-2xl border-2 transition-colors",
-          isDragActive
-            ? "border-primary bg-primary/5"
-            : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50",
-        )}
-      >
-        <input {...getInputProps()} />
-        <EmptyHeader>
-          <EmptyMedia
-            className={cn(
-              "size-16 rounded-full",
-              isDragActive ? "bg-primary/10" : "bg-muted",
-            )}
-          >
-            <HugeiconsIcon
-              icon={isOnlyItem ? CloudUploadIcon : Add01Icon}
-              strokeWidth={1.5}
-              className={cn(
-                "size-8",
-                isDragActive ? "text-primary" : "text-muted-foreground",
-              )}
-            />
-          </EmptyMedia>
-          <EmptyTitle>
-            {isOnlyItem ? "Drop images here" : "Add more"}
-          </EmptyTitle>
-          <EmptyDescription>
-            {isOnlyItem ? "or tap to select" : "Tap to select more images"}
-          </EmptyDescription>
-        </EmptyHeader>
-        {isOnlyItem && (
-          <EmptyContent>
-            <Button variant="outline">Select Images</Button>
-          </EmptyContent>
-        )}
-      </Empty>
-      {/* Navigation button - only show when can scroll */}
-      {onPrev && canScrollPrev && (
-        <Button
-          size="icon-sm"
-          variant="secondary"
-          className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-background/80 backdrop-blur-sm hover:bg-background"
-          onClick={(e) => {
-            e.stopPropagation();
-            onPrev();
-          }}
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="m15 18-6-6 6-6" />
-          </svg>
-          <span className="sr-only">Previous</span>
-        </Button>
+    <Empty
+      {...getRootProps()}
+      className={cn(
+        "h-full cursor-pointer rounded-2xl border-2 transition-colors",
+        isDragActive
+          ? "border-primary bg-primary/5"
+          : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/50",
       )}
-    </div>
+    >
+      <input {...getInputProps()} />
+      <EmptyHeader>
+        <EmptyMedia
+          className={cn(
+            "size-16 rounded-full",
+            isDragActive ? "bg-primary/10" : "bg-muted",
+          )}
+        >
+          <HugeiconsIcon
+            icon={isOnlyItem ? CloudUploadIcon : Add01Icon}
+            strokeWidth={1.5}
+            className={cn(
+              "size-8",
+              isDragActive ? "text-primary" : "text-muted-foreground",
+            )}
+          />
+        </EmptyMedia>
+        <EmptyTitle>
+          {isOnlyItem ? "Drop images here" : "Add more"}
+        </EmptyTitle>
+        <EmptyDescription>
+          {isOnlyItem ? "or tap to select" : "Tap to select more images"}
+        </EmptyDescription>
+      </EmptyHeader>
+      {isOnlyItem && (
+        <EmptyContent>
+          <Button variant="outline">Select Images</Button>
+        </EmptyContent>
+      )}
+    </Empty>
   );
 }
 
@@ -329,12 +240,13 @@ export function ImageCarousel({
           className="h-full"
           opts={{
             align: "center",
+            containScroll: false,
           }}
         >
-          <CarouselContent className="-ml-0">
+          <CarouselContent className="-ml-10">
             {images.map((image) => (
-              <CarouselItem key={image.id} className="pl-0">
-                <div className="h-full px-4">
+              <CarouselItem key={image.id} className="basis-[70%] pl-10">
+                <div className="h-full">
                   <PreviewItem
                     image={image}
                     background={background}
@@ -346,29 +258,31 @@ export function ImageCarousel({
                     borderRadius={borderRadius}
                     onRemove={() => onRemoveImage(image.id)}
                     onDownload={() => onDownloadImage(image)}
-                    onPrev={count > 1 ? () => api?.scrollPrev() : undefined}
-                    onNext={count > 1 ? () => api?.scrollNext() : undefined}
-                    canScrollPrev={api?.canScrollPrev() ?? false}
-                    canScrollNext={api?.canScrollNext() ?? false}
                   />
                 </div>
               </CarouselItem>
             ))}
             {/* Add-more item at the end */}
-            <CarouselItem className="pl-0">
-              <div className="h-full px-4">
-                <AddMoreItem
-                  onFilesAdded={onFilesAdded}
-                  isOnlyItem={false}
-                  onPrev={count > 1 ? () => api?.scrollPrev() : undefined}
-                  canScrollPrev={api?.canScrollPrev() ?? false}
-                />
+            <CarouselItem className="basis-[70%] pl-10">
+              <div className="h-full">
+                <AddMoreItem onFilesAdded={onFilesAdded} isOnlyItem={false} />
               </div>
             </CarouselItem>
           </CarouselContent>
+          {count > 1 && (
+            <>
+              <CarouselPrevious
+                variant="secondary"
+                className="left-2 bg-background/80 backdrop-blur-sm hover:bg-background"
+              />
+              <CarouselNext
+                variant="secondary"
+                className="right-2 bg-background/80 backdrop-blur-sm hover:bg-background"
+              />
+            </>
+          )}
         </Carousel>
       </div>
-
     </div>
   );
 }
