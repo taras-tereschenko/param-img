@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { toast } from "sonner";
 import type {
   AmbientBaseType,
   BackgroundType,
@@ -18,13 +19,59 @@ interface ProcessingParams {
   borderRadius: BorderRadiusOption;
 }
 
-function downloadDataUrl(dataUrl: string, filename: string): void {
+// File System Access API types (not yet in lib.dom.d.ts)
+interface FilePickerAcceptType {
+  description?: string;
+  accept: Record<string, Array<string>>;
+}
+
+interface SaveFilePickerOptions {
+  suggestedName?: string;
+  types?: Array<FilePickerAcceptType>;
+}
+
+// Augment Window with File System Access API
+declare global {
+  interface Window {
+    showSaveFilePicker?: (
+      options?: SaveFilePickerOptions,
+    ) => Promise<FileSystemFileHandle>;
+  }
+}
+
+// Helper to check if File System Access API is available
+// Exclude mobile even if API exists (unreliable on mobile)
+function supportsFileSystemAccess(): boolean {
+  return (
+    typeof window.showSaveFilePicker === "function" &&
+    !("ontouchstart" in window)
+  );
+}
+
+// Download using File System Access API (true completion detection)
+async function downloadWithFileSystem(
+  blob: Blob,
+  filename: string,
+): Promise<void> {
+  const handle = await window.showSaveFilePicker!({
+    suggestedName: filename,
+    types: [{ description: "PNG Image", accept: { "image/png": [".png"] } }],
+  });
+  const writable = await handle.createWritable();
+  await writable.write(blob);
+  await writable.close();
+}
+
+// Fallback download with Blob URL (better than data URLs on mobile)
+function downloadWithBlobUrl(blob: Blob, filename: string): void {
+  const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
-  link.href = dataUrl;
+  link.href = url;
   link.download = filename;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 }
 
 export function useImageExport(
@@ -59,21 +106,39 @@ export function useImageExport(
     setIsDownloading(true);
     setDownloadProgress(0);
 
+    const useFileSystemAPI = supportsFileSystemAccess();
+
     try {
       for (let i = 0; i < images.length; i++) {
         const image = images[i];
         const processedUrl = await processImage(image);
+
+        // Convert data URL to blob
+        const response = await fetch(processedUrl);
+        const blob = await response.blob();
         const filename = createStoryFilename(image.originalFile.name);
-        downloadDataUrl(processedUrl, filename);
+
+        if (useFileSystemAPI) {
+          // True completion detection - no delay needed
+          await downloadWithFileSystem(blob, filename);
+        } else {
+          // Fallback: Blob URL + generous delay for mobile
+          downloadWithBlobUrl(blob, filename);
+          if (i < images.length - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+          }
+        }
 
         setDownloadProgress(((i + 1) / images.length) * 100);
-
-        if (i < images.length - 1) {
-          await new Promise((resolve) => setTimeout(resolve, 200));
-        }
       }
     } catch (error) {
-      console.error("Failed to download images:", error);
+      // User cancelled file picker or other error
+      if (error instanceof Error && error.name !== "AbortError") {
+        console.error("Failed to download images:", error);
+        toast.error("Failed to download images", {
+          description: "An error occurred while saving files",
+        });
+      }
     } finally {
       setIsDownloading(false);
       setDownloadProgress(0);
@@ -84,10 +149,22 @@ export function useImageExport(
     async (image: ProcessedImage) => {
       try {
         const processedUrl = await processImage(image);
+        const response = await fetch(processedUrl);
+        const blob = await response.blob();
         const filename = createStoryFilename(image.originalFile.name);
-        downloadDataUrl(processedUrl, filename);
+
+        if (supportsFileSystemAccess()) {
+          await downloadWithFileSystem(blob, filename);
+        } else {
+          downloadWithBlobUrl(blob, filename);
+        }
       } catch (error) {
-        console.error("Failed to download image:", error);
+        if (error instanceof Error && error.name !== "AbortError") {
+          console.error("Failed to download image:", error);
+          toast.error("Failed to download image", {
+            description: "An error occurred while saving the file",
+          });
+        }
       }
     },
     [processImage],
@@ -116,10 +193,16 @@ export function useImageExport(
         await navigator.share({ files });
       } else {
         console.warn("File sharing not supported");
+        toast.error("Sharing not supported", {
+          description: "Your browser doesn't support sharing files",
+        });
       }
     } catch (error) {
       if (error instanceof Error && error.name !== "AbortError") {
         console.error("Failed to share images:", error);
+        toast.error("Failed to share images", {
+          description: "An error occurred while sharing",
+        });
       }
     } finally {
       setIsSharing(false);

@@ -14,6 +14,9 @@ self.addEventListener("message", (event) => {
   }
 });
 
+// Accepted image types (can't import from lib/types.ts in service worker)
+const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
 // IndexedDB helper for storing shared files
 const DB_NAME = "param-img-share";
 const STORE_NAME = "shared-files";
@@ -66,10 +69,10 @@ async function handleShareTarget(request: Request): Promise<Response> {
     const formData = await request.formData();
     const files: Array<File> = [];
 
-    // Get all shared images
+    // Get all shared images (validate against accepted types)
     const images = formData.getAll("images");
     for (const image of images) {
-      if (image instanceof File && image.type.startsWith("image/")) {
+      if (image instanceof File && ACCEPTED_IMAGE_TYPES.includes(image.type)) {
         files.push(image);
       }
     }

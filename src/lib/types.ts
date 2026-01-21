@@ -6,12 +6,6 @@ export interface ProcessedImage {
   id: string;
   originalFile: File;
   originalDataUrl: string;
-  processedDataUrl: string | null;
-  backgroundColor: BackgroundType;
-  customColor: string | null;
-  scale: number;
-  status: "pending" | "processing" | "ready" | "error";
-  error?: string;
   naturalWidth: number;
   naturalHeight: number;
 }

@@ -3,6 +3,8 @@ import { toast } from "sonner";
 import { useRegisterSW } from "virtual:pwa-register/react";
 
 export function ReloadPrompt() {
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
@@ -12,22 +14,32 @@ export function ReloadPrompt() {
       // Uses robust implementation from vite-plugin-pwa docs:
       // https://vite-pwa-org.netlify.app/guide/periodic-sw-updates.html
       if (registration) {
-        setInterval(
+        // Clear any existing interval
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+        }
+
+        intervalRef.current = setInterval(
           async () => {
-            // Skip if SW is currently installing
-            if (registration.installing) return;
+            try {
+              // Skip if SW is currently installing
+              if (registration.installing) return;
 
-            // Skip if browser is offline
-            if ("connection" in navigator && !navigator.onLine) return;
+              // Skip if browser is offline
+              if ("connection" in navigator && !navigator.onLine) return;
 
-            // Verify server is reachable before attempting update
-            const resp = await fetch(swUrl, {
-              cache: "no-store",
-              headers: { "cache-control": "no-cache" },
-            });
+              // Verify server is reachable before attempting update
+              const resp = await fetch(swUrl, {
+                cache: "no-store",
+                headers: { "cache-control": "no-cache" },
+              });
 
-            if (resp.status === 200) {
-              await registration.update();
+              if (resp.status === 200) {
+                await registration.update();
+              }
+            } catch (error) {
+              // Network error during update check - this is expected when offline
+              console.warn("SW update check failed:", error);
             }
           },
           60 * 60 * 1000,
@@ -35,12 +47,22 @@ export function ReloadPrompt() {
       }
     },
   });
+
   const toastIdRef = useRef<string | number | null>(null);
 
   const handleUpdate = () => {
     // updateServiceWorker(true) triggers skipWaiting and reloads all tabs automatically
     updateServiceWorker(true);
   };
+
+  // Cleanup interval on unmount
+  useEffect(() => {
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (needRefresh && !toastIdRef.current) {

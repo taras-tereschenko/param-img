@@ -72,6 +72,11 @@ export async function processImageForStory(
 ): Promise<string> {
   const img = await loadImage(imageDataUrl);
 
+  // Validate image dimensions to prevent NaN from division by zero
+  if (img.width <= 0 || img.height <= 0) {
+    throw new Error("Invalid image dimensions");
+  }
+
   // Calculate canvas dimensions based on original image
   const { width: canvasWidth, height: canvasHeight } =
     calculateCanvasDimensions(img.width, img.height);

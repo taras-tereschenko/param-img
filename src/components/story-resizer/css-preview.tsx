@@ -97,7 +97,9 @@ export const CSSPreview = memo(function CSSPreview({
     : 0;
   // Scale to actual screen pixels
   const radiusPx =
-    containerHeight > 0 ? radiusLogicalPx * (containerHeight / canvasHeight) : 0;
+    containerHeight > 0
+      ? radiusLogicalPx * (containerHeight / canvasHeight)
+      : 0;
 
   // Get solid background color
   const getSolidColor = () => {

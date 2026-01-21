@@ -45,6 +45,3 @@ export function BlurSlider({
     </div>
   );
 }
-
-// Keep the old export name for backwards compatibility during refactor
-export { BlurSlider as BlurRadiusSlider };

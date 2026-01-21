@@ -1,24 +1,10 @@
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import type { ProcessedImage } from "@/lib/types";
 import type { StoredImage } from "@/lib/image-storage";
-import { DEFAULT_SCALE } from "@/lib/types";
 import { loadImages, saveImages } from "@/lib/image-storage";
+import { loadImageDimensions } from "@/lib/image-utils";
 import { hasSharedContent } from "@/lib/share-target";
-
-/**
- * Load image dimensions from a data URL
- */
-async function loadImageDimensions(
-  dataUrl: string,
-): Promise<{ width: number; height: number }> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () =>
-      resolve({ width: img.naturalWidth, height: img.naturalHeight });
-    img.onerror = reject;
-    img.src = dataUrl;
-  });
-}
 
 interface UseImagePersistenceOptions {
   images: Array<ProcessedImage>;
@@ -52,11 +38,6 @@ export function useImagePersistence({
                 id: stored.id,
                 originalFile: stored.originalFile,
                 originalDataUrl: stored.originalDataUrl,
-                processedDataUrl: null,
-                backgroundColor: "blur",
-                customColor: null,
-                scale: DEFAULT_SCALE,
-                status: "pending",
                 naturalWidth: width,
                 naturalHeight: height,
               } satisfies ProcessedImage;
@@ -66,6 +47,9 @@ export function useImagePersistence({
         }
       } catch (error) {
         console.error("Error loading persisted images:", error);
+        toast.error("Failed to restore images", {
+          description: "Could not load previously saved images",
+        });
       } finally {
         setIsInitialLoadComplete(true);
       }

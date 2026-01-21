@@ -163,9 +163,7 @@ function AddMoreItem({ onFilesAdded, isOnlyItem }: AddMoreItemProps) {
             )}
           />
         </EmptyMedia>
-        <EmptyTitle>
-          {isOnlyItem ? "Drop images here" : "Add more"}
-        </EmptyTitle>
+        <EmptyTitle>{isOnlyItem ? "Drop images here" : "Add more"}</EmptyTitle>
         <EmptyDescription>
           {isOnlyItem ? "or tap to select" : "Tap to select more images"}
         </EmptyDescription>
@@ -230,9 +228,7 @@ export function ImageCarousel({
   }
 
   return (
-    <div
-      className="flex h-full flex-col py-4"
-    >
+    <div className="flex h-full flex-col py-4">
       {/* Wrapper to center carousel */}
       <div className="relative min-h-0 flex-1 overflow-hidden">
         <Carousel

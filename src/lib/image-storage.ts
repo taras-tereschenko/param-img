@@ -2,6 +2,7 @@
  * Image Storage utilities for persisting images between page reloads
  */
 
+import { toast } from "sonner";
 import { openDatabase } from "./indexed-db";
 
 export const IMAGE_DB_CONFIG = {
@@ -40,6 +41,16 @@ export async function saveImages(images: Array<StoredImage>): Promise<void> {
     });
   } catch (error) {
     console.error("Error saving images:", error);
+    // Check for quota exceeded error
+    const isQuotaError =
+      error instanceof DOMException &&
+      (error.name === "QuotaExceededError" ||
+        error.name === "NS_ERROR_DOM_QUOTA_REACHED");
+    if (isQuotaError) {
+      toast.error("Storage quota exceeded", {
+        description: "Try removing some images or clearing browser data",
+      });
+    }
   }
 }
 
@@ -66,30 +77,6 @@ export async function loadImages(): Promise<Array<StoredImage>> {
 }
 
 /**
- * Get a single image by ID from IndexedDB
- */
-export async function getImageById(
-  id: string,
-): Promise<StoredImage | undefined> {
-  if (typeof indexedDB === "undefined") return undefined;
-
-  try {
-    const db = await openDatabase(IMAGE_DB_CONFIG);
-    const tx = db.transaction(IMAGE_DB_CONFIG.storeName, "readonly");
-    const store = tx.objectStore(IMAGE_DB_CONFIG.storeName);
-    const request = store.get(id);
-
-    return new Promise((resolve, reject) => {
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result);
-    });
-  } catch (error) {
-    console.error("Error getting image:", error);
-    return undefined;
-  }
-}
-
-/**
  * Save a single image to IndexedDB immediately (for zero-transfer optimization)
  * This ensures the image is in IndexedDB before the worker tries to read it.
  */
@@ -108,5 +95,15 @@ export async function saveImageImmediately(image: StoredImage): Promise<void> {
     });
   } catch (error) {
     console.error("Error saving image immediately:", error);
+    // Check for quota exceeded error
+    const isQuotaError =
+      error instanceof DOMException &&
+      (error.name === "QuotaExceededError" ||
+        error.name === "NS_ERROR_DOM_QUOTA_REACHED");
+    if (isQuotaError) {
+      toast.error("Storage quota exceeded", {
+        description: "Try removing some images or clearing browser data",
+      });
+    }
   }
 }

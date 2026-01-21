@@ -1,6 +1,32 @@
 import { MAX_SOURCE_DIMENSION } from "./types";
 
 /**
+ * Load image dimensions from a data URL with timeout
+ * Returns { width, height } of the loaded image
+ */
+export async function loadImageDimensions(
+  dataUrl: string,
+  timeoutMs = 10000,
+): Promise<{ width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const timer = setTimeout(() => {
+      reject(new Error(`Image load timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    img.onload = () => {
+      clearTimeout(timer);
+      resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    };
+    img.onerror = () => {
+      clearTimeout(timer);
+      reject(new Error("Failed to load image dimensions"));
+    };
+    img.src = dataUrl;
+  });
+}
+
+/**
  * Convert a File to a data URL string
  */
 export function fileToDataUrl(file: File): Promise<string> {
