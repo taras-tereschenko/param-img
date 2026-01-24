@@ -2,12 +2,34 @@ export type BackgroundType = "blur" | "black" | "white" | "custom" | "ambient";
 
 export type AmbientBaseType = "black" | "white" | "custom";
 
+export type PanelType = "blur" | "ambient" | "color" | "resize";
+
+/** Discriminated union for AI enhancement API responses */
+export type EnhanceResponse =
+  | { success: true; enhancedImageBase64: string; mimeType: string }
+  | { success: false; error: string };
+
+export type EnhancementStatus = "idle" | "loading" | "success" | "error";
+
+export interface ImageEnhancements {
+  exposure: { adjustment: number; shadows: number; highlights: number };
+  color: { temperature: number; saturation: number; vibrance: number };
+  clarity: { sharpening: number; noiseReduction: number };
+  suggestions: Array<string>;
+}
+
 export interface ProcessedImage {
   id: string;
   originalFile: File;
   originalDataUrl: string;
   naturalWidth: number;
   naturalHeight: number;
+  // AI Enhancement fields
+  enhancementStatus: EnhancementStatus;
+  enhancements?: ImageEnhancements; // CSS filter fallback (backward compatibility)
+  // Enhanced image relationship
+  isEnhancedResult?: boolean; // True if this IS an enhanced image
+  sourceImageId?: string; // ID of the original image (for enhanced results)
 }
 
 // Instagram Story aspect ratio: 9:21 (width:height) - taller for modern phone displays

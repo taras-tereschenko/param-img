@@ -12,7 +12,9 @@ export interface DBConfig {
 export async function openDatabase(config: DBConfig): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(config.name, config.version);
-    request.onerror = () => reject(request.error);
+    request.onerror = () => {
+      reject(request.error ?? new Error("IndexedDB open failed"));
+    };
     request.onsuccess = () => resolve(request.result);
     request.onupgradeneeded = () => {
       const db = request.result;

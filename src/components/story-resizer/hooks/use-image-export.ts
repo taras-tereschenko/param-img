@@ -8,6 +8,7 @@ import type {
 } from "@/lib/types";
 import { processImageForStory } from "@/lib/canvas-utils";
 import { createStoryFilename } from "@/lib/image-utils";
+import { isAbortError } from "@/lib/type-guards";
 
 interface ProcessingParams {
   background: BackgroundType;
@@ -86,6 +87,7 @@ export function useImageExport(
 
   const processImage = useCallback(
     async (image: ProcessedImage) => {
+      // Each image (original or enhanced) uses its own originalDataUrl
       return processImageForStory(
         image.originalDataUrl,
         params.background,
@@ -131,9 +133,9 @@ export function useImageExport(
 
         setDownloadProgress(((i + 1) / images.length) * 100);
       }
-    } catch (error) {
-      // User cancelled file picker or other error
-      if (error instanceof Error && error.name !== "AbortError") {
+    } catch (error: unknown) {
+      // User cancelled file picker - not an error
+      if (!isAbortError(error)) {
         console.error("Failed to download images:", error);
         toast.error("Failed to download images", {
           description: "An error occurred while saving files",
@@ -158,8 +160,9 @@ export function useImageExport(
         } else {
           downloadWithBlobUrl(blob, filename);
         }
-      } catch (error) {
-        if (error instanceof Error && error.name !== "AbortError") {
+      } catch (error: unknown) {
+        // User cancelled file picker - not an error
+        if (!isAbortError(error)) {
           console.error("Failed to download image:", error);
           toast.error("Failed to download image", {
             description: "An error occurred while saving the file",
@@ -197,8 +200,9 @@ export function useImageExport(
           description: "Your browser doesn't support sharing files",
         });
       }
-    } catch (error) {
-      if (error instanceof Error && error.name !== "AbortError") {
+    } catch (error: unknown) {
+      // User cancelled share dialog - not an error
+      if (!isAbortError(error)) {
         console.error("Failed to share images:", error);
         toast.error("Failed to share images", {
           description: "An error occurred while sharing",

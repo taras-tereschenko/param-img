@@ -27,7 +27,7 @@ export function useSharedFiles({
           onFilesReceived(newImages);
           onShowInstallPrompt?.();
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error loading shared files:", error);
       } finally {
         clearSharedParam();

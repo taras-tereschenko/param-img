@@ -40,12 +40,15 @@ export function useImagePersistence({
                 originalDataUrl: stored.originalDataUrl,
                 naturalWidth: width,
                 naturalHeight: height,
+                enhancementStatus: "idle",
+                isEnhancedResult: stored.isEnhancedResult,
+                sourceImageId: stored.sourceImageId,
               } satisfies ProcessedImage;
             }),
           );
           onImagesLoaded(restoredImages);
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error loading persisted images:", error);
         toast.error("Failed to restore images", {
           description: "Could not load previously saved images",
@@ -66,9 +69,13 @@ export function useImagePersistence({
       id: img.id,
       originalFile: img.originalFile,
       originalDataUrl: img.originalDataUrl,
+      isEnhancedResult: img.isEnhancedResult,
+      sourceImageId: img.sourceImageId,
     }));
 
-    saveImages(imagesToStore);
+    saveImages(imagesToStore).catch((error: unknown) => {
+      console.error("Failed to save images:", error);
+    });
   }, [images, isInitialLoadComplete]);
 
   return { isInitialLoadComplete };

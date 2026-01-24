@@ -1,8 +1,10 @@
-import { useCallback, useMemo, useReducer } from "react";
+import { useCallback, useEffect, useMemo, useReducer } from "react";
+import { z } from "zod";
 import type {
   AmbientBaseType,
   BackgroundType,
   BorderRadiusOption,
+  EnhancementStatus,
   ProcessedImage,
 } from "@/lib/types";
 import {
@@ -11,6 +13,69 @@ import {
   DEFAULT_BORDER_RADIUS,
   DEFAULT_SCALE,
 } from "@/lib/types";
+
+const SETTINGS_STORAGE_KEY = "param-img-settings";
+
+/**
+ * Zod schema for persisted settings validation.
+ * Must match the canonical types from @/lib/types.ts.
+ * Using .partial() makes all fields optional - perfect for localStorage
+ * where we might have outdated/incomplete data from previous versions.
+ */
+const PersistedSettingsSchema = z
+  .object({
+    background: z.enum(["blur", "black", "white", "custom", "ambient"]),
+    customColor: z.string().nullable(),
+    ambientBase: z.enum(["black", "white", "custom"]),
+    ambientCustomColor: z.string().nullable(),
+    blurPercent: z.number().min(0).max(100),
+    ambientBlurPercent: z.number().min(0).max(100),
+    scale: z.number().min(0).max(1),
+    // BorderRadiusOption is 0 | 1 | 2 | 3 in types.ts
+    borderRadius: z.union([
+      z.literal(0),
+      z.literal(1),
+      z.literal(2),
+      z.literal(3),
+    ]),
+  })
+  .partial();
+
+/** Settings that persist to localStorage (uses canonical types from @/lib/types) */
+interface PersistedSettings {
+  background: BackgroundType;
+  customColor: string | null;
+  ambientBase: AmbientBaseType;
+  ambientCustomColor: string | null;
+  blurPercent: number;
+  ambientBlurPercent: number;
+  scale: number;
+  borderRadius: BorderRadiusOption;
+}
+
+function loadPersistedSettings(): Partial<PersistedSettings> {
+  if (typeof window === "undefined") return {};
+  try {
+    const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (!stored) return {};
+    const parsed: unknown = JSON.parse(stored);
+    const result = PersistedSettingsSchema.safeParse(parsed);
+    // Zod validates the shape matches our canonical types
+    // The inferred type is compatible with Partial<PersistedSettings>
+    return result.success ? result.data : {};
+  } catch {
+    return {};
+  }
+}
+
+function savePersistedSettings(settings: PersistedSettings): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+  } catch {
+    // Ignore storage errors (quota exceeded, etc.)
+  }
+}
 
 interface State {
   images: Array<ProcessedImage>;
@@ -35,7 +100,13 @@ type Action =
   | { type: "SET_AMBIENT_BLUR_PERCENT"; ambientBlurPercent: number }
   | { type: "SET_SCALE"; scale: number }
   | { type: "SET_BORDER_RADIUS"; borderRadius: BorderRadiusOption }
-  | { type: "CLEAR_ALL" };
+  | { type: "CLEAR_ALL" }
+  | { type: "SET_ENHANCEMENT_STATUS"; id: string; status: EnhancementStatus }
+  | {
+      type: "ADD_ENHANCED_IMAGE";
+      sourceId: string;
+      enhancedImage: ProcessedImage;
+    };
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
@@ -69,13 +140,39 @@ function reducer(state: State, action: Action): State {
         customColor: null,
         ambientCustomColor: null,
       };
+    case "SET_ENHANCEMENT_STATUS":
+      return {
+        ...state,
+        images: state.images.map((img) =>
+          img.id === action.id
+            ? { ...img, enhancementStatus: action.status }
+            : img,
+        ),
+      };
+    case "ADD_ENHANCED_IMAGE": {
+      const sourceIndex = state.images.findIndex(
+        (img) => img.id === action.sourceId,
+      );
+      if (sourceIndex === -1) return state;
+      const newImages = [...state.images];
+      const sourceImage = {
+        ...newImages[sourceIndex],
+        enhancementStatus: "idle" as const,
+      };
+      // Put enhanced image at original's position, move original after it
+      newImages[sourceIndex] = action.enhancedImage;
+      newImages.splice(sourceIndex + 1, 0, sourceImage);
+      return {
+        ...state,
+        images: newImages,
+      };
+    }
     default:
       return state;
   }
 }
 
-const initialState: State = {
-  images: [],
+const defaultSettings: PersistedSettings = {
   background: "blur",
   customColor: null,
   ambientBase: "black",
@@ -86,8 +183,17 @@ const initialState: State = {
   borderRadius: DEFAULT_BORDER_RADIUS,
 };
 
+function createInitialState(): State {
+  const persisted = loadPersistedSettings();
+  return {
+    images: [],
+    ...defaultSettings,
+    ...persisted,
+  };
+}
+
 export function useStoryResizerState() {
-  const [state, dispatch] = useReducer(reducer, initialState);
+  const [state, dispatch] = useReducer(reducer, null, createInitialState);
 
   const {
     images,
@@ -100,6 +206,29 @@ export function useStoryResizerState() {
     scale,
     borderRadius,
   } = state;
+
+  // Persist settings to localStorage whenever they change
+  useEffect(() => {
+    savePersistedSettings({
+      background,
+      customColor,
+      ambientBase,
+      ambientCustomColor,
+      blurPercent,
+      ambientBlurPercent,
+      scale,
+      borderRadius,
+    });
+  }, [
+    background,
+    customColor,
+    ambientBase,
+    ambientCustomColor,
+    blurPercent,
+    ambientBlurPercent,
+    scale,
+    borderRadius,
+  ]);
 
   // Derived values
   const activeBlurPercent =
@@ -161,6 +290,20 @@ export function useStoryResizerState() {
     dispatch({ type: "SET_BORDER_RADIUS", borderRadius: newBorderRadius });
   }, []);
 
+  const setEnhancementStatus = useCallback(
+    (id: string, status: EnhancementStatus) => {
+      dispatch({ type: "SET_ENHANCEMENT_STATUS", id, status });
+    },
+    [],
+  );
+
+  const addEnhancedImage = useCallback(
+    (sourceId: string, enhancedImage: ProcessedImage) => {
+      dispatch({ type: "ADD_ENHANCED_IMAGE", sourceId, enhancedImage });
+    },
+    [],
+  );
+
   return {
     // State values
     images,
@@ -188,5 +331,8 @@ export function useStoryResizerState() {
     setAmbientBlurPercent,
     setScale,
     setBorderRadius,
+    // Enhancement actions
+    setEnhancementStatus,
+    addEnhancedImage,
   };
 }

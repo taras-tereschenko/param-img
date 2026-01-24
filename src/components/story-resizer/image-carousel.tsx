@@ -8,6 +8,7 @@ import {
   DownloadCircle02Icon,
 } from "@hugeicons/core-free-icons";
 import { CSSPreview } from "./css-preview";
+import { EnhanceButton } from "./enhance-button";
 import type {
   AmbientBaseType,
   BackgroundType,
@@ -45,6 +46,7 @@ interface ImageCarouselProps {
   onFilesAdded: (files: Array<File>) => void;
   onRemoveImage: (id: string) => void;
   onDownloadImage: (image: ProcessedImage) => void;
+  onEnhanceImage: (image: ProcessedImage) => void;
 }
 
 interface PreviewItemProps {
@@ -58,6 +60,7 @@ interface PreviewItemProps {
   borderRadius: BorderRadiusOption;
   onRemove: () => void;
   onDownload: () => void;
+  onEnhance: () => void;
 }
 
 const PreviewItem = memo(function PreviewItem({
@@ -71,6 +74,7 @@ const PreviewItem = memo(function PreviewItem({
   borderRadius,
   onRemove,
   onDownload,
+  onEnhance,
 }: PreviewItemProps) {
   return (
     <div className="flex h-full items-center justify-center">
@@ -87,9 +91,10 @@ const PreviewItem = memo(function PreviewItem({
           blurPercent={blurPercent}
           scale={scale}
           borderRadius={borderRadius}
+          enhancements={image.enhancements}
           className="absolute inset-0 h-full w-full"
         />
-        {/* Overlay buttons */}
+        {/* Top overlay buttons */}
         <Button
           size="icon-sm"
           variant="secondary"
@@ -108,6 +113,11 @@ const PreviewItem = memo(function PreviewItem({
           <HugeiconsIcon icon={DownloadCircle02Icon} strokeWidth={2} />
           <span className="sr-only">Download</span>
         </Button>
+
+        {/* Bottom overlay - Enhancement button */}
+        <div className="absolute bottom-2 right-2 z-10">
+          <EnhanceButton image={image} onEnhance={onEnhance} />
+        </div>
       </div>
     </div>
   );
@@ -189,6 +199,7 @@ export function ImageCarousel({
   onFilesAdded,
   onRemoveImage,
   onDownloadImage,
+  onEnhanceImage,
 }: ImageCarouselProps) {
   const [api, setApi] = useState<CarouselApi>();
   const [count, setCount] = useState(0);
@@ -204,14 +215,6 @@ export function ImageCarousel({
     return () => {
       api.off("reInit", updateCount);
     };
-  }, [api, images.length]);
-
-  // Scroll to the add-more item when new images are added
-  useEffect(() => {
-    if (api && images.length > 0) {
-      // Scroll to the last image (before the add-more item)
-      api.scrollTo(images.length - 1);
-    }
   }, [api, images.length]);
 
   const hasImages = images.length > 0;
@@ -254,6 +257,7 @@ export function ImageCarousel({
                     borderRadius={borderRadius}
                     onRemove={() => onRemoveImage(image.id)}
                     onDownload={() => onDownloadImage(image)}
+                    onEnhance={() => onEnhanceImage(image)}
                   />
                 </div>
               </CarouselItem>

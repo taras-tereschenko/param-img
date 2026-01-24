@@ -33,11 +33,17 @@ function getBlurPixels(
 /**
  * Draw the background based on the selected type
  */
+/**
+ * Background types that drawBackground handles directly.
+ * "ambient" is handled separately in processImageForStory.
+ */
+type SolidBackgroundType = Exclude<BackgroundType, "ambient">;
+
 function drawBackground(
   ctx: CanvasRenderingContext2D,
   canvas: HTMLCanvasElement,
   img: HTMLImageElement,
-  backgroundType: BackgroundType,
+  backgroundType: SolidBackgroundType,
   customColor?: string | null,
   blurPixels?: number,
 ): void {
@@ -54,6 +60,10 @@ function drawBackground(
     case "custom":
       drawSolidBackground(ctx, canvas, customColor || "#000000");
       break;
+    default: {
+      const _exhaustive: never = backgroundType;
+      throw new Error(`Unhandled background type: ${_exhaustive}`);
+    }
   }
 }
 

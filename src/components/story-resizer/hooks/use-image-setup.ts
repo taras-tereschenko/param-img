@@ -17,8 +17,8 @@ import { saveImageImmediately } from "@/lib/image-storage";
 export async function prepareProcessedImages(
   files: Array<File>,
 ): Promise<Array<ProcessedImage>> {
-  const results = await Promise.allSettled(
-    files.map(async (file) => {
+  const results = await Promise.allSettled<ProcessedImage>(
+    files.map(async (file): Promise<ProcessedImage> => {
       const dataUrl = await fileToDataUrl(file);
       const preparedDataUrl = await prepareImage(dataUrl);
       const id = generateImageId();
@@ -39,7 +39,8 @@ export async function prepareProcessedImages(
         originalDataUrl: preparedDataUrl,
         naturalWidth: width,
         naturalHeight: height,
-      } satisfies ProcessedImage;
+        enhancementStatus: "idle",
+      };
     }),
   );
 

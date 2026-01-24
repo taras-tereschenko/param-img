@@ -4,18 +4,21 @@
 
 import { toast } from "sonner";
 import { openDatabase } from "./indexed-db";
+import { isQuotaExceededError } from "./type-guards";
 
 export const IMAGE_DB_CONFIG = {
   name: "param-img-storage",
   version: 1,
   storeName: "images",
   keyPath: "id",
-};
+} as const;
 
 export interface StoredImage {
   id: string;
   originalFile: File;
   originalDataUrl: string;
+  isEnhancedResult?: boolean;
+  sourceImageId?: string;
 }
 
 /**
@@ -37,16 +40,13 @@ export async function saveImages(images: Array<StoredImage>): Promise<void> {
 
     return new Promise((resolve, reject) => {
       tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
+      tx.onerror = () => {
+        reject(tx.error ?? new Error("IndexedDB transaction failed"));
+      };
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error saving images:", error);
-    // Check for quota exceeded error
-    const isQuotaError =
-      error instanceof DOMException &&
-      (error.name === "QuotaExceededError" ||
-        error.name === "NS_ERROR_DOM_QUOTA_REACHED");
-    if (isQuotaError) {
+    if (isQuotaExceededError(error)) {
       toast.error("Storage quota exceeded", {
         description: "Try removing some images or clearing browser data",
       });
@@ -67,10 +67,12 @@ export async function loadImages(): Promise<Array<StoredImage>> {
     const request = store.getAll();
 
     return new Promise((resolve, reject) => {
-      request.onerror = () => reject(request.error);
+      request.onerror = () => {
+        reject(request.error ?? new Error("IndexedDB request failed"));
+      };
       request.onsuccess = () => resolve(request.result);
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error loading images:", error);
     return [];
   }
@@ -91,16 +93,13 @@ export async function saveImageImmediately(image: StoredImage): Promise<void> {
 
     return new Promise((resolve, reject) => {
       tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
+      tx.onerror = () => {
+        reject(tx.error ?? new Error("IndexedDB transaction failed"));
+      };
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error saving image immediately:", error);
-    // Check for quota exceeded error
-    const isQuotaError =
-      error instanceof DOMException &&
-      (error.name === "QuotaExceededError" ||
-        error.name === "NS_ERROR_DOM_QUOTA_REACHED");
-    if (isQuotaError) {
+    if (isQuotaExceededError(error)) {
       toast.error("Storage quota exceeded", {
         description: "Try removing some images or clearing browser data",
       });

@@ -10,33 +10,128 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiEnhanceRouteImport } from './routes/api/enhance'
+import { Route as ApiPolarWebhooksRouteImport } from './routes/api/polar/webhooks'
+import { Route as ApiPolarProductsRouteImport } from './routes/api/polar/products'
+import { Route as ApiPolarPortalRouteImport } from './routes/api/polar/portal'
+import { Route as ApiPolarCheckoutSuccessRouteImport } from './routes/api/polar/checkout-success'
+import { Route as ApiPolarCheckoutRouteImport } from './routes/api/polar/checkout'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiEnhanceRoute = ApiEnhanceRouteImport.update({
+  id: '/api/enhance',
+  path: '/api/enhance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPolarWebhooksRoute = ApiPolarWebhooksRouteImport.update({
+  id: '/api/polar/webhooks',
+  path: '/api/polar/webhooks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPolarProductsRoute = ApiPolarProductsRouteImport.update({
+  id: '/api/polar/products',
+  path: '/api/polar/products',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPolarPortalRoute = ApiPolarPortalRouteImport.update({
+  id: '/api/polar/portal',
+  path: '/api/polar/portal',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPolarCheckoutSuccessRoute = ApiPolarCheckoutSuccessRouteImport.update({
+  id: '/api/polar/checkout-success',
+  path: '/api/polar/checkout-success',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPolarCheckoutRoute = ApiPolarCheckoutRouteImport.update({
+  id: '/api/polar/checkout',
+  path: '/api/polar/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/api/enhance': typeof ApiEnhanceRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/polar/checkout': typeof ApiPolarCheckoutRoute
+  '/api/polar/checkout-success': typeof ApiPolarCheckoutSuccessRoute
+  '/api/polar/portal': typeof ApiPolarPortalRoute
+  '/api/polar/products': typeof ApiPolarProductsRoute
+  '/api/polar/webhooks': typeof ApiPolarWebhooksRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api/enhance': typeof ApiEnhanceRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/polar/checkout': typeof ApiPolarCheckoutRoute
+  '/api/polar/checkout-success': typeof ApiPolarCheckoutSuccessRoute
+  '/api/polar/portal': typeof ApiPolarPortalRoute
+  '/api/polar/products': typeof ApiPolarProductsRoute
+  '/api/polar/webhooks': typeof ApiPolarWebhooksRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/api/enhance': typeof ApiEnhanceRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/polar/checkout': typeof ApiPolarCheckoutRoute
+  '/api/polar/checkout-success': typeof ApiPolarCheckoutSuccessRoute
+  '/api/polar/portal': typeof ApiPolarPortalRoute
+  '/api/polar/products': typeof ApiPolarProductsRoute
+  '/api/polar/webhooks': typeof ApiPolarWebhooksRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/api/enhance'
+    | '/api/auth/$'
+    | '/api/polar/checkout'
+    | '/api/polar/checkout-success'
+    | '/api/polar/portal'
+    | '/api/polar/products'
+    | '/api/polar/webhooks'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/api/enhance'
+    | '/api/auth/$'
+    | '/api/polar/checkout'
+    | '/api/polar/checkout-success'
+    | '/api/polar/portal'
+    | '/api/polar/products'
+    | '/api/polar/webhooks'
+  id:
+    | '__root__'
+    | '/'
+    | '/api/enhance'
+    | '/api/auth/$'
+    | '/api/polar/checkout'
+    | '/api/polar/checkout-success'
+    | '/api/polar/portal'
+    | '/api/polar/products'
+    | '/api/polar/webhooks'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ApiEnhanceRoute: typeof ApiEnhanceRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiPolarCheckoutRoute: typeof ApiPolarCheckoutRoute
+  ApiPolarCheckoutSuccessRoute: typeof ApiPolarCheckoutSuccessRoute
+  ApiPolarPortalRoute: typeof ApiPolarPortalRoute
+  ApiPolarProductsRoute: typeof ApiPolarProductsRoute
+  ApiPolarWebhooksRoute: typeof ApiPolarWebhooksRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +143,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/enhance': {
+      id: '/api/enhance'
+      path: '/api/enhance'
+      fullPath: '/api/enhance'
+      preLoaderRoute: typeof ApiEnhanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/polar/webhooks': {
+      id: '/api/polar/webhooks'
+      path: '/api/polar/webhooks'
+      fullPath: '/api/polar/webhooks'
+      preLoaderRoute: typeof ApiPolarWebhooksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/polar/products': {
+      id: '/api/polar/products'
+      path: '/api/polar/products'
+      fullPath: '/api/polar/products'
+      preLoaderRoute: typeof ApiPolarProductsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/polar/portal': {
+      id: '/api/polar/portal'
+      path: '/api/polar/portal'
+      fullPath: '/api/polar/portal'
+      preLoaderRoute: typeof ApiPolarPortalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/polar/checkout-success': {
+      id: '/api/polar/checkout-success'
+      path: '/api/polar/checkout-success'
+      fullPath: '/api/polar/checkout-success'
+      preLoaderRoute: typeof ApiPolarCheckoutSuccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/polar/checkout': {
+      id: '/api/polar/checkout'
+      path: '/api/polar/checkout'
+      fullPath: '/api/polar/checkout'
+      preLoaderRoute: typeof ApiPolarCheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ApiEnhanceRoute: ApiEnhanceRoute,
+  ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiPolarCheckoutRoute: ApiPolarCheckoutRoute,
+  ApiPolarCheckoutSuccessRoute: ApiPolarCheckoutSuccessRoute,
+  ApiPolarPortalRoute: ApiPolarPortalRoute,
+  ApiPolarProductsRoute: ApiPolarProductsRoute,
+  ApiPolarWebhooksRoute: ApiPolarWebhooksRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

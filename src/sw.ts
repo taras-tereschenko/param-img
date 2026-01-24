@@ -24,7 +24,9 @@ const STORE_NAME = "shared-files";
 async function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, 1);
-    request.onerror = () => reject(request.error);
+    request.onerror = () => {
+      reject(request.error ?? new Error("IndexedDB open failed"));
+    };
     request.onsuccess = () => resolve(request.result);
     request.onupgradeneeded = () => {
       const db = request.result;
@@ -50,7 +52,9 @@ async function storeSharedFiles(files: Array<File>): Promise<void> {
 
   return new Promise((resolve, reject) => {
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error);
+    tx.onerror = () => {
+      reject(tx.error ?? new Error("IndexedDB transaction failed"));
+    };
   });
 }
 

@@ -8,7 +8,7 @@ const DB_CONFIG = {
   name: "param-img-share",
   version: 1,
   storeName: "shared-files",
-};
+} as const;
 
 /**
  * Retrieve and clear shared files from IndexedDB
@@ -29,7 +29,9 @@ export async function getSharedFiles(): Promise<Array<File>> {
     const request = store.openCursor();
 
     await new Promise<void>((resolve, reject) => {
-      request.onerror = () => reject(request.error);
+      request.onerror = () => {
+        reject(request.error ?? new Error("IndexedDB cursor failed"));
+      };
       request.onsuccess = () => {
         const cursor = request.result;
         if (cursor) {
@@ -47,7 +49,7 @@ export async function getSharedFiles(): Promise<Array<File>> {
     store.clear();
 
     return files;
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error retrieving shared files:", error);
     return [];
   }

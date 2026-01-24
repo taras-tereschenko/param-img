@@ -19,7 +19,9 @@ import {
   useSharedFiles,
   useStoryResizerState,
 } from "./hooks";
+import { useEnhance } from "./hooks/use-enhance";
 import { useInstallPrompt } from "@/components/pwa/pwa-provider";
+import { useCredits } from "@/hooks/use-credits";
 import {
   Progress,
   ProgressIndicator,
@@ -31,6 +33,7 @@ import { Spinner } from "@/components/ui/spinner";
 export function StoryResizer() {
   const { triggerShow } = useInstallPrompt();
   const { activeSheet, openPanel, closePanel } = usePanelNavigation();
+  const { refetch: refetchCredits } = useCredits();
 
   const {
     images,
@@ -56,7 +59,19 @@ export function StoryResizer() {
     setAmbientBlurPercent,
     setScale,
     setBorderRadius,
+    // Enhancement actions
+    setEnhancementStatus,
+    addEnhancedImage,
   } = useStoryResizerState();
+
+  // Enhancement functionality
+  const { enhanceImage } = useEnhance({
+    onStatusChange: setEnhancementStatus,
+    onEnhancedImageCreated: (sourceId, enhancedImage) => {
+      addEnhancedImage(sourceId, enhancedImage);
+    },
+    onCreditsUsed: refetchCredits,
+  });
 
   // Persistence and shared files
   useImagePersistence({ images, onImagesLoaded: addImages });
@@ -251,6 +266,7 @@ export function StoryResizer() {
             onFilesAdded={handleFilesAdded}
             onRemoveImage={removeImage}
             onDownloadImage={handleDownloadImage}
+            onEnhanceImage={enhanceImage}
           />
         </main>
 

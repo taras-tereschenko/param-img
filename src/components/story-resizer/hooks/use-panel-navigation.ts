@@ -1,7 +1,8 @@
 import { useCallback } from "react";
 import { useNavigate, useSearch } from "@tanstack/react-router";
+import type { PanelType } from "@/lib/types";
 
-export type PanelType = "blur" | "ambient" | "color" | "resize";
+export type { PanelType };
 
 export function usePanelNavigation() {
   const navigate = useNavigate();

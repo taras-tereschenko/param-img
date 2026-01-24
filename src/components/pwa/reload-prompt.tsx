@@ -37,7 +37,7 @@ export function ReloadPrompt() {
               if (resp.status === 200) {
                 await registration.update();
               }
-            } catch (error) {
+            } catch (error: unknown) {
               // Network error during update check - this is expected when offline
               console.warn("SW update check failed:", error);
             }

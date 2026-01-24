@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import type { PanelType } from "@/lib/types";
 import { StoryResizer } from "@/components/story-resizer/story-resizer";
-
-type PanelType = "blur" | "ambient" | "color" | "resize";
 
 export const Route = createFileRoute("/")({
   component: App,
